@@ -1,27 +1,12 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
-import { StyleSheet, Text } from 'react-native';
+import { StyleSheet } from 'react-native';
 
 import { Colors, FontSize, Spacing } from '@/constants/theme';
 import { TransactionsProvider } from '@/contexts/TransactionsContext';
 
 /**
- * Ícone das abas em texto.
- *
- * @expo/vector-icons não está instalado, e adicioná-lo só por isto traria uma
- * família de fontes inteira ao bundle. Um símbolo curto resolve, e o rótulo
- * abaixo dele já carrega o significado — o ícone aqui é reforço visual, não a
- * única pista.
- */
-function IconeAba({ simbolo, cor }: { simbolo: string; cor: string }) {
-  return (
-    <Text style={[styles.icone, { color: cor }]} accessibilityElementsHidden importantForAccessibility="no">
-      {simbolo}
-    </Text>
-  );
-}
-
-/**
- * Layout da área logada.
+ * Layout da área logada — abas fixas na base.
  *
  * O TransactionsProvider vive aqui, e não na raiz, porque a assinatura do
  * Firestore depende de um usuário autenticado. Montá-lo acima do guard faria a
@@ -37,20 +22,32 @@ export default function AppLayout() {
           tabBarInactiveTintColor: Colors.textMuted,
           tabBarStyle: styles.barra,
           tabBarLabelStyle: styles.rotulo,
+          tabBarItemStyle: styles.item,
         }}
       >
         <Tabs.Screen
           name="home"
           options={{
             title: 'Início',
-            tabBarIcon: ({ color }) => <IconeAba simbolo="●" cor={color} />,
+            tabBarIcon: ({ color, size }) => <Ionicons name="home" size={size} color={color} />,
+          }}
+        />
+        <Tabs.Screen
+          name="nova-transacao"
+          options={{
+            title: 'Nova transação',
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="add-circle" size={size} color={color} />
+            ),
           }}
         />
         <Tabs.Screen
           name="extrato"
           options={{
             title: 'Extrato',
-            tabBarIcon: ({ color }) => <IconeAba simbolo="≡" cor={color} />,
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="receipt-outline" size={size} color={color} />
+            ),
           }}
         />
       </Tabs>
@@ -64,6 +61,8 @@ const styles = StyleSheet.create({
     borderTopColor: Colors.borderLight,
     paddingTop: Spacing.xs,
   },
-  rotulo: { fontSize: FontSize.xs, fontWeight: '600' },
-  icone: { fontSize: 18, lineHeight: 20 },
+  // "Nova transação" é o rótulo mais longo; sem folga ele quebra em duas linhas
+  // e desalinha a altura das abas.
+  rotulo: { fontSize: 11, fontWeight: '600' },
+  item: { paddingHorizontal: 2 },
 });
