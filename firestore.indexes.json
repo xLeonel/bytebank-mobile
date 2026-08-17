@@ -1,0 +1,55 @@
+{
+  "$comment": [
+    "Índices compostos das consultas da tela de extrato.",
+    "O Firestore resolve sozinho consultas de campo único, mas qualquer filtro",
+    "combinado com ordenação por outro campo exige índice declarado — e a",
+    "consulta falha em runtime até ele existir, não no build.",
+    "A ordenação base é sempre date desc + createdAt desc: o formulário grava a",
+    "data sem hora, então várias transações do mesmo dia empatam em `date` e o",
+    "createdAt é o desempate que mantém a recém-criada no topo.",
+    "Publicar com: firebase deploy --only firestore:indexes"
+  ],
+  "indexes": [
+    {
+      "$comment": "Listagem sem filtro e paginação por cursor.",
+      "collectionGroup": "transactions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "date", "order": "DESCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "$comment": "Filtro por categoria.",
+      "collectionGroup": "transactions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "category", "order": "ASCENDING" },
+        { "fieldPath": "date", "order": "DESCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "$comment": "Filtro por tipo de transação.",
+      "collectionGroup": "transactions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "type", "order": "ASCENDING" },
+        { "fieldPath": "date", "order": "DESCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "$comment": "Filtro por tipo e categoria ao mesmo tempo.",
+      "collectionGroup": "transactions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "type", "order": "ASCENDING" },
+        { "fieldPath": "category", "order": "ASCENDING" },
+        { "fieldPath": "date", "order": "DESCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

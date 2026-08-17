@@ -1,0 +1,58 @@
+rules_version = '2';
+
+// Regras de segurança do Firestore.
+//
+// Substituem o que na Fase 2 era o JwtAuthGuard + filtro `{ user: userId }` no
+// backend NestJS. Como o app fala direto com o Firestore, sem servidor no meio,
+// estas regras são a ÚNICA barreira entre o dado de um usuário e o de outro.
+//
+// Publicar com:  firebase deploy --only firestore:rules
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function autenticado() {
+      return request.auth != null;
+    }
+
+    function ehDono(uid) {
+      return autenticado() && request.auth.uid == uid;
+    }
+
+    // Validação de forma. O sinal do valor é calculado no cliente
+    // (domain/transaction.ts), então aqui não dá para reconferir a regra de
+    // negócio — mas dá para impedir que o documento entre com tipo inventado
+    // ou campo de outro formato, o que quebraria a listagem e os gráficos.
+    function transacaoValida(d) {
+      return d.type in ['saque', 'deposito', 'pix']
+        && d.amount is number
+        && d.date is timestamp
+        && d.createdAt is timestamp
+        && (!('depositType' in d) || d.depositType in ['own', 'other'])
+        && (!('attachments' in d) || d.attachments is list)
+        && (!('description' in d) || d.description is string)
+        && (!('category' in d) || d.category is string);
+    }
+
+    match /users/{uid} {
+      allow read: if ehDono(uid);
+      // create e update separados: o dono cria o próprio perfil no cadastro e
+      // pode atualizá-lo, mas nunca escrever no documento de outro usuário.
+      allow create, update: if ehDono(uid);
+      // Sem delete: apagar o perfil deixaria as transações órfãs na subcoleção.
+      allow delete: if false;
+
+      match /transactions/{txId} {
+        allow read: if ehDono(uid);
+        allow create: if ehDono(uid) && transacaoValida(request.resource.data);
+        allow update: if ehDono(uid) && transacaoValida(request.resource.data);
+        allow delete: if ehDono(uid);
+      }
+    }
+
+    // Nada mais é acessível. Sem esta negação explícita, uma coleção criada por
+    // engano no futuro nasceria sem proteção.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
