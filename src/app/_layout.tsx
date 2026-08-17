@@ -1,18 +1,61 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
-import { useColorScheme } from 'react-native';
+import { Stack, useRouter, useSegments } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import { useEffect } from 'react';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
-import { AnimatedSplashOverlay } from '@/components/animated-icon';
-import AppTabs from '@/components/app-tabs';
+import { Colors } from '@/constants/theme';
+import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 
-SplashScreen.preventAutoHideAsync();
+/**
+ * Guarda de rota.
+ *
+ * Diferente da Fase 2 — onde o guard só checava se *existia* uma sessão e o
+ * usuário com token vencido entrava numa tela que falhava inteira —, aqui a
+ * fonte é o `onAuthStateChanged` do Firebase, que já reflete token expirado ou
+ * revogado. Enquanto `loading`, não se redireciona: navegar antes de o estado
+ * resolver mandaria todo mundo para o login no boot.
+ */
+function RotasProtegidas() {
+  const { user, loading } = useAuth();
+  const segments = useSegments();
+  const router = useRouter();
 
-export default function TabLayout() {
-  const colorScheme = useColorScheme();
+  useEffect(() => {
+    if (loading) return;
+    const emAreaPublica = segments[0] === '(auth)';
+
+    if (!user && !emAreaPublica) {
+      router.replace('/(auth)/login');
+    } else if (user && emAreaPublica) {
+      router.replace('/(app)/home');
+    }
+  }, [user, loading, segments, router]);
+
+  if (loading) {
+    return (
+      <View style={styles.carregando}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+      </View>
+    );
+  }
+
+  return <Stack screenOptions={{ headerShown: false }} />;
+}
+
+export default function RootLayout() {
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <AnimatedSplashOverlay />
-      <AppTabs />
-    </ThemeProvider>
+    <AuthProvider>
+      <StatusBar style="light" />
+      <RotasProtegidas />
+    </AuthProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  carregando: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.background,
+  },
+});
