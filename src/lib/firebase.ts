@@ -19,6 +19,7 @@ import {
 import { getApp, getApps, initializeApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
+import { Platform } from 'react-native';
 
 /**
  * Inicialização do Firebase.
@@ -58,13 +59,23 @@ const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
  * deslogado a cada vez que o app é fechado — o SDK só avisa com um warning
  * discreto no console, então é uma falha fácil de não perceber em dev.
  */
+/**
+ * No web (`expo start --web`) a condição de export "react-native" não se
+ * aplica, então `getReactNativePersistence` não existe e o SDK já persiste
+ * sozinho em IndexedDB/localStorage. Tratar isso explicitamente evita que a
+ * ausência da função caia no `catch` abaixo, que existe para outro motivo.
+ */
 let auth: Auth;
-try {
-  auth = initializeAuth(app, { persistence: getReactNativePersistence(AsyncStorage) });
-} catch {
-  // Já inicializado (Fast Refresh): reaproveita a instância existente em vez de
-  // estourar "auth/already-initialized".
+if (Platform.OS === 'web') {
   auth = getAuth(app);
+} else {
+  try {
+    auth = initializeAuth(app, { persistence: getReactNativePersistence(AsyncStorage) });
+  } catch {
+    // Já inicializado (Fast Refresh): reaproveita a instância existente em vez
+    // de estourar "auth/already-initialized".
+    auth = getAuth(app);
+  }
 }
 
 export { app, auth };
