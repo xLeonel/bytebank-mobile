@@ -22,11 +22,18 @@ function RotasProtegidas() {
 
   useEffect(() => {
     if (loading) return;
+
+    // Cada estado tem uma área onde pode ficar; qualquer outro lugar é
+    // redirecionado. Antes a condição era "está na área pública?", o que
+    // deixava de fora a raiz: um usuário com sessão restaurada abrindo o app
+    // em "/" não casava com nenhum ramo e ficava preso no spinner do index.
+    // Perguntar "está na área certa?" cobre a raiz e qualquer rota perdida.
     const emAreaPublica = segments[0] === '(auth)';
+    const emAreaLogada = segments[0] === '(app)';
 
     if (!user && !emAreaPublica) {
       router.replace('/(auth)/login');
-    } else if (user && emAreaPublica) {
+    } else if (user && !emAreaLogada) {
       router.replace('/(app)/home');
     }
   }, [user, loading, segments, router]);

@@ -78,6 +78,12 @@ if (Platform.OS === 'web') {
   }
 }
 
+// Confirma no log do Metro qual projeto o app está usando e que a inicialização
+// chegou ao fim. Sem isso, uma falha aqui se manifesta só como tela parada.
+console.log(
+  `[firebase] inicializado | projeto=${firebaseConfig.projectId} | plataforma=${Platform.OS}`,
+);
+
 export { app, auth };
 export const db = getFirestore(app);
 export const storage = getStorage(app);
