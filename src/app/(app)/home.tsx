@@ -1,4 +1,7 @@
-import { SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+// O SafeAreaView do react-native está deprecado e, no iOS, não respeita o
+// notch corretamente. O do safe-area-context lê os insets reais do aparelho.
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/Button';
 import { Colors, FontSize, Radius, Spacing } from '@/constants/theme';
