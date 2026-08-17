@@ -65,4 +65,6 @@ export type UserProfile = {
   email: string;
   agency: string;
   bankAccount: string;
+  /** Download URL da foto no Storage; ausente quando não há foto. */
+  photoUrl?: string;
 };

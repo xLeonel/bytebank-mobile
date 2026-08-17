@@ -160,9 +160,16 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: Colors.textSecondary,
   },
+  // Card branco envolvendo a lista, como no web: separa o conteúdo do fundo
+  // verde-claro da tela e dá contraste às linhas.
   lista: {
-    padding: Spacing.md,
+    backgroundColor: Colors.surface,
+    borderRadius: Radius.lg,
+    marginHorizontal: Spacing.md,
     marginTop: Spacing.sm,
+    marginBottom: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
   },
   esqueletoLinha: {
     flexDirection: 'row',

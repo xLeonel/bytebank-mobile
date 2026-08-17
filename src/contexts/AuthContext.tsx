@@ -28,6 +28,8 @@ type AuthContextValue = {
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (nome: string, email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
+  /** Grava alterações parciais no perfil e reflete no estado local. */
+  atualizarPerfil: (dados: Partial<UserProfile>) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -168,9 +170,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await firebaseSignOut(auth);
   }, []);
 
+  const atualizarPerfil = useCallback(
+    async (dados: Partial<UserProfile>) => {
+      if (!user) throw new Error('Sessão expirada. Entre novamente.');
+      // merge para não apagar os campos que não vieram nesta chamada.
+      await setDoc(doc(db, 'users', user.uid), dados, { merge: true });
+      setProfile((atual) => (atual ? { ...atual, ...dados } : atual));
+    },
+    [user],
+  );
+
   const value = useMemo(
-    () => ({ user, profile, loading, signIn, signUp, signOut }),
-    [user, profile, loading, signIn, signUp, signOut],
+    () => ({ user, profile, loading, signIn, signUp, signOut, atualizarPerfil }),
+    [user, profile, loading, signIn, signUp, signOut, atualizarPerfil],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

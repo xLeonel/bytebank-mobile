@@ -1,16 +1,17 @@
+import { Ionicons } from '@expo/vector-icons';
+import { Link } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 // O SafeAreaView do react-native está deprecado e, no iOS, não respeita o
 // notch corretamente. O do safe-area-context lê os insets reais do aparelho.
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Button } from '@/components/Button';
 import { HomeSkeleton } from '@/components/skeletons/HomeSkeleton';
+import { TransactionRow } from '@/components/TransactionRow';
 import { Colors, FontSize, Radius, Spacing } from '@/constants/theme';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTransactions } from '@/contexts/TransactionsContext';
-import { formatBrl, formatDate, formatTodayGreeting } from '@/domain/format';
-import { TYPE_LABEL } from '@/domain/transaction';
+import { formatBrl, formatTodayGreeting } from '@/domain/format';
 
 const ULTIMAS = 5;
 
@@ -56,9 +57,17 @@ export default function HomeScreen() {
             onPress={() => setSaldoVisivel((v) => !v)}
             accessibilityRole="button"
             accessibilityLabel={saldoVisivel ? 'Ocultar saldo' : 'Mostrar saldo'}
-            hitSlop={8}
+            hitSlop={12}
+            style={styles.toggle}
           >
-            <Text style={styles.toggle}>{saldoVisivel ? 'Ocultar saldo' : 'Mostrar saldo'}</Text>
+            <Ionicons
+              name={saldoVisivel ? 'eye-outline' : 'eye-off-outline'}
+              size={18}
+              color={Colors.warning}
+            />
+            <Text style={styles.toggleTexto}>
+              {saldoVisivel ? 'Ocultar saldo' : 'Mostrar saldo'}
+            </Text>
           </Pressable>
         </View>
 
@@ -73,25 +82,25 @@ export default function HomeScreen() {
             </Text>
           )}
 
-          {transacoes.slice(0, ULTIMAS).map((tx) => (
-            <View key={tx.id} style={styles.linha}>
-              <View style={styles.linhaTexto}>
-                <Text style={styles.linhaTipo}>{TYPE_LABEL[tx.type]}</Text>
-                {!!tx.description && (
-                  <Text style={styles.linhaDescricao} numberOfLines={1}>
-                    {tx.description}
-                  </Text>
-                )}
-                <Text style={styles.linhaData}>{formatDate(tx.date)}</Text>
-              </View>
-              <Text style={[styles.valor, tx.amount < 0 ? styles.debito : styles.credito]}>
-                {formatBrl(tx.amount)}
-              </Text>
-            </View>
+          {transacoes.slice(0, ULTIMAS).map((tx, i) => (
+            <TransactionRow key={tx.id} transacao={tx} comSeparador={i > 0} />
           ))}
-        </View>
 
-        <Button title="Sair" onPress={signOut} variant="secondary" />
+          {/* Só aparece quando há o que ver além das 5 — um link para "todas"
+              que mostra o mesmo conteúdo seria promessa vazia. */}
+          {transacoes.length > ULTIMAS && (
+            <Link href="/(app)/extrato" asChild>
+              <Pressable
+                style={styles.verTodas}
+                accessibilityRole="link"
+                accessibilityLabel="Ver todas as transações no extrato"
+              >
+                <Text style={styles.verTodasTexto}>Ver todas as transações no extrato</Text>
+                <Ionicons name="arrow-forward" size={14} color={Colors.primary} />
+              </Pressable>
+            </Link>
+          )}
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -117,25 +126,28 @@ const styles = StyleSheet.create({
     color: Colors.onPrimary,
   },
   saldoNegativo: { color: '#FCA5A5' },
-  toggle: { marginTop: Spacing.xs, fontSize: FontSize.sm, color: Colors.warning, fontWeight: '600' },
+  toggle: {
+    marginTop: Spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    alignSelf: 'flex-start',
+  },
+  toggleTexto: { fontSize: FontSize.sm, color: Colors.warning, fontWeight: '600' },
   card: { backgroundColor: Colors.surface, borderRadius: Radius.lg, padding: Spacing.lg },
   tituloCard: { fontSize: FontSize.md, fontWeight: '700', color: Colors.text },
   vazio: { marginTop: Spacing.md, fontSize: FontSize.sm, color: Colors.textSecondary },
   erro: { marginTop: Spacing.md, fontSize: FontSize.sm, color: Colors.error },
-  linha: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+  verTodas: {
     marginTop: Spacing.md,
     paddingTop: Spacing.md,
     borderTopWidth: 1,
     borderTopColor: Colors.borderLight,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+    minHeight: 44, // alvo de toque mínimo confortável
   },
-  linhaTexto: { flex: 1, marginRight: Spacing.md },
-  linhaTipo: { fontSize: FontSize.sm, fontWeight: '600', color: Colors.text },
-  linhaDescricao: { fontSize: FontSize.xs, color: Colors.textSecondary, marginTop: 2 },
-  linhaData: { fontSize: FontSize.xs, color: Colors.textMuted, marginTop: 2 },
-  valor: { fontSize: FontSize.md, fontWeight: '700' },
-  credito: { color: Colors.credito },
-  debito: { color: Colors.debito },
+  verTodasTexto: { fontSize: FontSize.sm, fontWeight: '700', color: Colors.primary },
 });

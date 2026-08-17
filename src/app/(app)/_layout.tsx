@@ -50,6 +50,15 @@ export default function AppLayout() {
             ),
           }}
         />
+        <Tabs.Screen
+          name="configuracoes"
+          options={{
+            title: 'Ajustes',
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="settings-outline" size={size} color={color} />
+            ),
+          }}
+        />
       </Tabs>
     </TransactionsProvider>
   );
