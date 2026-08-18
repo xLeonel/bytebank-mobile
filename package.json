@@ -40,11 +40,14 @@
   },
   "scripts": {
     "start": "expo start",
-    "reset-project": "node ./scripts/reset-project.js",
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx src/domain/domain.test.ts",
+    "seed": "tsx --env-file=.env.local scripts/seed.ts",
+    "verify": "npm run typecheck && npm run test && expo export --platform android --output-dir .verify && rm -rf .verify"
   },
   "private": true
 }

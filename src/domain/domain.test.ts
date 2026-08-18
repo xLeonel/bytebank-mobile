@@ -96,7 +96,8 @@ eq('data de hoje valida', validateDateNotFuture(new Date()).valid, true);
 eq('destino sem agencia invalido', validateDestino('12', '3456').valid, false);
 eq('destino completo valido', validateDestino('0001', '12345-6').valid, true);
 
-console.log(String.fromCharCode(10) + '--- agregados dos graficos ---');
+console.log(`
+--- agregados dos graficos ---`);
 const comValor = (id: string, data: string, valor: number, tipo: Transaction['type'] = 'pix'): Transaction => ({
   ...tx(id, data, data),
   type: tipo,
