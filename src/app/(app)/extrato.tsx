@@ -1,4 +1,5 @@
 import type { DocumentData, QueryDocumentSnapshot } from 'firebase/firestore';
+import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -17,6 +18,7 @@ const POR_PAGINA = 15;
 
 export default function ExtratoScreen() {
   const { user } = useAuth();
+  const router = useRouter();
 
   const [tipo, setTipo] = useState<TransactionType | null>(null);
   const [categoria, setCategoria] = useState<Category | null>(null);
@@ -118,7 +120,11 @@ export default function ExtratoScreen() {
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.lista}
           renderItem={({ item, index }) => (
-            <TransactionRow transacao={item} comSeparador={index > 0} />
+            <TransactionRow
+              transacao={item}
+              comSeparador={index > 0}
+              onPress={(tx) => router.push({ pathname: '/(app)/transacao/[id]', params: { id: tx.id } })}
+            />
           )}
           onEndReached={carregarMais}
           // 0.5 dispara com meia tela restante: cedo o bastante para a próxima

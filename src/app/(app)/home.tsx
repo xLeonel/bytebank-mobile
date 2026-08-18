@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Link } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 // O SafeAreaView do react-native está deprecado e, no iOS, não respeita o
@@ -20,6 +20,7 @@ export default function HomeScreen() {
   const { user, profile, signOut } = useAuth();
   const { transacoes, saldo, carregando, erro } = useTransactions();
   const [saldoVisivel, setSaldoVisivel] = useState(true);
+  const router = useRouter();
 
   const primeiroNome = (profile?.name ?? user?.displayName ?? '').split(' ')[0] || 'você';
 
@@ -88,7 +89,12 @@ export default function HomeScreen() {
           )}
 
           {transacoes.slice(0, ULTIMAS).map((tx, i) => (
-            <TransactionRow key={tx.id} transacao={tx} comSeparador={i > 0} />
+            <TransactionRow
+              key={tx.id}
+              transacao={tx}
+              comSeparador={i > 0}
+              onPress={(t) => router.push({ pathname: '/(app)/transacao/[id]', params: { id: t.id } })}
+            />
           ))}
 
           {/* Só aparece quando há o que ver além das 5 — um link para "todas"

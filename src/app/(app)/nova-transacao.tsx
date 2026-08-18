@@ -15,12 +15,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/components/Button';
 import { Chip, ChipGroup } from '@/components/Chip';
 import { Input } from '@/components/Input';
+import { ReciboPicker } from '@/components/ReciboPicker';
 import { Colors, FontSize, Radius, Spacing } from '@/constants/theme';
+import { useAuth } from '@/contexts/AuthContext';
 import { useTransactions } from '@/contexts/TransactionsContext';
 import { CATEGORIES, suggestCategory, type Category } from '@/domain/category';
 import { formatDate, maskAmount, parseAmount } from '@/domain/format';
 import { DEPOSIT_TYPE_LABEL, TRANSACTION_TYPES, TYPE_LABEL } from '@/domain/transaction';
 import type { DepositType, TransactionType } from '@/domain/types';
+import { anexarRecibo } from '@/lib/transactions';
 import {
   validateAmount,
   validateCategory,
@@ -34,6 +37,7 @@ type Erros = Partial<Record<'valor' | 'data' | 'categoria' | 'pixKey' | 'destino
 export default function NovaTransacaoScreen() {
   const router = useRouter();
   const { criar } = useTransactions();
+  const { user } = useAuth();
 
   const [tipo, setTipo] = useState<TransactionType>('deposito');
   const [depositType, setDepositType] = useState<DepositType>('own');
@@ -48,6 +52,7 @@ export default function NovaTransacaoScreen() {
   const [pixKey, setPixKey] = useState('');
 
   const [erros, setErros] = useState<Erros>({});
+  const [reciboUri, setReciboUri] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
   const [sucesso, setSucesso] = useState(false);
 
@@ -100,6 +105,7 @@ export default function NovaTransacaoScreen() {
     setAgencia('');
     setConta('');
     setPixKey('');
+    setReciboUri(null);
     setErros({});
   }
 
@@ -109,7 +115,7 @@ export default function NovaTransacaoScreen() {
     setEnviando(true);
     setSucesso(false);
     try {
-      await criar({
+      const id = await criar({
         type: tipo,
         // O destino só faz sentido em depósito; em outro tipo seria ruído no
         // documento. O sinal do valor sai daqui, em applySign.
@@ -121,6 +127,17 @@ export default function NovaTransacaoScreen() {
         ...(ehPix ? { pixKey: pixKey.trim() } : {}),
         ...(ehDepositoOutraConta ? { agency: agencia.trim(), account: conta.trim() } : {}),
       });
+
+      // O recibo sobe depois do create porque o caminho no bucket inclui o id
+      // da transação. Se o upload falhar, a transação continua válida — o
+      // comprovante pode ser anexado depois, na edição.
+      if (reciboUri && user) {
+        try {
+          await anexarRecibo(user.uid, id, reciboUri, `recibo-${Date.now()}.jpg`);
+        } catch (e) {
+          console.warn('[recibo] falha ao anexar:', (e as Error)?.message);
+        }
+      }
 
       limpar();
       setSucesso(true);
@@ -269,6 +286,14 @@ export default function NovaTransacaoScreen() {
                 />
               </>
             )}
+
+            <View style={styles.espaco} />
+            <ReciboPicker
+              anexos={[]}
+              uriPendente={reciboUri}
+              onEscolher={(uri) => setReciboUri(uri)}
+              onRemoverPendente={() => setReciboUri(null)}
+            />
 
             {!!erros.geral && (
               <Text style={styles.erroGeral} accessibilityRole="alert">

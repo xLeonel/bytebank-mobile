@@ -59,6 +59,9 @@ export default function AppLayout() {
             ),
           }}
         />
+        {/* Rota de detalhe: precisa existir no navegador para ser acessível,
+            mas não é um destino de nível superior — href null a esconde da barra. */}
+        <Tabs.Screen name="transacao/[id]" options={{ href: null }} />
       </Tabs>
     </TransactionsProvider>
   );

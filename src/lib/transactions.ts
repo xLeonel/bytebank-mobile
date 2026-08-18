@@ -1,8 +1,11 @@
 import {
   addDoc,
+  arrayRemove,
+  arrayUnion,
   collection,
   deleteDoc,
   doc,
+  getDoc,
   getDocs,
   limit as limitTo,
   onSnapshot,
@@ -20,8 +23,9 @@ import {
 
 import { applySign } from '@/domain/transaction';
 import type { Category } from '@/domain/category';
-import type { Transaction, TransactionInput, TransactionType } from '@/domain/types';
+import type { Attachment, Transaction, TransactionInput, TransactionType } from '@/domain/types';
 import { db } from '@/lib/firebase';
+import { enviarArquivo, removerArquivo } from '@/lib/storage';
 
 /** Subcoleção do usuário — o uid no caminho é o que a Security Rule verifica. */
 function colecao(uid: string) {
@@ -179,4 +183,57 @@ export async function atualizarTransacao(
 
 export async function removerTransacao(uid: string, id: string): Promise<void> {
   await deleteDoc(doc(db, 'users', uid, 'transactions', id));
+}
+
+/**
+ * Anexa um recibo à transação: envia ao Storage e grava a referência no
+ * documento.
+ *
+ * O arquivo só sobe depois de a transação existir, porque o caminho no bucket
+ * inclui o id dela — assim o recibo fica amarrado à transação e a regra de
+ * segurança consegue verificar o dono pelo próprio caminho.
+ *
+ * A gravação usa arrayUnion em vez de reescrever a lista: se duas telas
+ * anexarem quase ao mesmo tempo, nenhuma apaga o anexo da outra.
+ */
+export async function anexarRecibo(
+  uid: string,
+  txId: string,
+  uriLocal: string,
+  nomeArquivo: string,
+): Promise<Attachment> {
+  const caminho = `users/${uid}/receipts/${txId}/${nomeArquivo}`;
+  const url = await enviarArquivo(caminho, uriLocal);
+
+  const anexo: Attachment = {
+    name: nomeArquivo,
+    type: nomeArquivo.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'image/jpeg',
+    path: caminho,
+    url,
+  };
+
+  await updateDoc(doc(db, 'users', uid, 'transactions', txId), {
+    attachments: arrayUnion(anexo),
+  });
+
+  return anexo;
+}
+
+/** Remove o recibo do Storage e a referência do documento. */
+export async function removerRecibo(
+  uid: string,
+  txId: string,
+  anexo: Attachment,
+): Promise<void> {
+  await removerArquivo(anexo.path);
+  await updateDoc(doc(db, 'users', uid, 'transactions', txId), {
+    attachments: arrayRemove(anexo),
+  });
+}
+
+/** Uma transação específica, para a tela de edição. */
+export async function buscarTransacao(uid: string, id: string): Promise<Transaction | null> {
+  const snap = await getDoc(doc(db, 'users', uid, 'transactions', id));
+  if (!snap.exists()) return null;
+  return paraDominio(snap as QueryDocumentSnapshot<DocumentData>);
 }
