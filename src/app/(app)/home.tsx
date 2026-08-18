@@ -6,6 +6,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 // notch corretamente. O do safe-area-context lê os insets reais do aparelho.
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { AnaliseFinanceira } from '@/components/charts/AnaliseFinanceira';
 import { HomeSkeleton } from '@/components/skeletons/HomeSkeleton';
 import { TransactionRow } from '@/components/TransactionRow';
 import { Colors, FontSize, Radius, Spacing } from '@/constants/theme';
@@ -70,6 +71,10 @@ export default function HomeScreen() {
             </Text>
           </Pressable>
         </View>
+
+        {transacoes.length > 0 && (
+          <AnaliseFinanceira transacoes={transacoes} saldo={saldo} />
+        )}
 
         <View style={styles.card}>
           <Text style={styles.tituloCard}>Últimas transações</Text>

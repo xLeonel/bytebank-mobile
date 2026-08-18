@@ -7,6 +7,7 @@
  * depósito por destino, o rótulo do tipo que não fazia ida-e-volta e a ordenação
  * por data. São baratos de manter e pegam regressão nessas três frentes.
  */
+import { agruparPorMes, agruparPorTipo, evolucaoDoSaldo } from './analytics';
 import { suggestCategory } from './category';
 import { formatBrl, formatDate, maskAmount, parseAmount } from './format';
 import { applySign, calcularSaldo, ordenarPorDataDesc, TYPE_LABEL } from './transaction';
@@ -94,6 +95,49 @@ eq('data futura invalida', validateDateNotFuture(amanha).valid, false);
 eq('data de hoje valida', validateDateNotFuture(new Date()).valid, true);
 eq('destino sem agencia invalido', validateDestino('12', '3456').valid, false);
 eq('destino completo valido', validateDestino('0001', '12345-6').valid, true);
+
+console.log(String.fromCharCode(10) + '--- agregados dos graficos ---');
+const comValor = (id: string, data: string, valor: number, tipo: Transaction['type'] = 'pix'): Transaction => ({
+  ...tx(id, data, data),
+  type: tipo,
+  amount: valor,
+});
+
+// O bug da Fase 2: a direcao era fixada pela PRIMEIRA transacao do tipo. Com a
+// lista ordenada por data, um unico deposito negativo recente pintava o grupo
+// inteiro como saida.
+const tipos = agruparPorTipo([
+  comValor('d1', '2026-08-15', -22, 'deposito'), // deposito em outra conta, mais recente
+  comValor('d2', '2026-08-10', 5000, 'deposito'),
+  comValor('s1', '2026-08-09', -300, 'saque'),
+]);
+eq('deposito com liquido positivo e ENTRADA', tipos.find((t) => t.type === 'deposito')?.direcao, 'entrada');
+eq('deposito soma com sinal', tipos.find((t) => t.type === 'deposito')?.total, 4978);
+eq('saque e saida', tipos.find((t) => t.type === 'saque')?.direcao, 'saida');
+eq('ordenado do maior para o menor', tipos.map((t) => t.type), ['deposito', 'saque']);
+eq('tipo com liquido zero e omitido', agruparPorTipo([
+  comValor('a', '2026-08-01', 100, 'pix'),
+  comValor('b', '2026-08-02', -100, 'pix'),
+]).length, 0);
+
+const meses = agruparPorMes([
+  comValor('a', '2026-07-10', 1000),
+  comValor('b', '2026-07-20', -400),
+  comValor('c', '2026-08-05', 200),
+]);
+eq('agrupa por mes em ordem cronologica', meses.map((m) => m.chave), ['2026-07', '2026-08']);
+eq('saidas viram valor absoluto', meses[0].saidas, 400);
+eq('entradas somadas', meses[0].entradas, 1000);
+
+// A curva e reconstruida a partir do saldo ATUAL, andando para tras: o saldo de
+// hoje e conhecido, um "saldo inicial" seria suposicao.
+const curva = evolucaoDoSaldo([
+  comValor('a', '2026-08-01', 1000),
+  comValor('b', '2026-08-02', -250),
+], 750);
+eq('curva termina no saldo atual', curva[curva.length - 1].saldo, 750);
+eq('curva comeca apos a primeira transacao', curva[0].saldo, 1000);
+eq('curva em ordem cronologica', curva.length, 2);
 
 console.log(
   falhas === 0 ? '\n=== TODOS OS TESTES PASSARAM ===' : `\n=== ${falhas} FALHA(S) ===`,
