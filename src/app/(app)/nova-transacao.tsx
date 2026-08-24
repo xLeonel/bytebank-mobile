@@ -172,7 +172,7 @@ export default function NovaTransacaoScreen() {
             </View>
 
             {tipo === 'deposito' && (
-              <>
+              <View style={styles.grupo}>
                 <Text style={styles.rotulo}>Destino do depósito</Text>
                 <View style={styles.linhaChips}>
                   {(['own', 'other'] as DepositType[]).map((d) => (
@@ -189,7 +189,7 @@ export default function NovaTransacaoScreen() {
                     Depósito em outra conta sai do seu saldo.
                   </Text>
                 )}
-              </>
+              </View>
             )}
 
             <View style={styles.espaco} />
@@ -238,7 +238,7 @@ export default function NovaTransacaoScreen() {
               placeholder="Ex.: aluguel, freelance..."
             />
 
-            <Text style={styles.rotulo}>Categoria</Text>
+            <Text style={[styles.rotulo, styles.grupo]}>Categoria</Text>
             <ChipGroup
               opcoes={CATEGORIES}
               selecionado={categoria}
@@ -333,6 +333,9 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xs,
   },
   linhaChips: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
+  // Respiro entre blocos de "rótulo + controle". Sem ele o rótulo do grupo
+  // seguinte encosta nos chips do anterior e os dois parecem um só campo.
+  grupo: { marginTop: Spacing.lg },
   espaco: { height: Spacing.md },
   aviso: {
     marginTop: Spacing.sm,

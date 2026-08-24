@@ -234,7 +234,7 @@ export default function EditarTransacaoScreen() {
             </View>
 
             {tipo === 'deposito' && (
-              <>
+              <View style={styles.grupo}>
                 <Text style={styles.rotulo}>Destino do depósito</Text>
                 <View style={styles.linhaChips}>
                   {(['own', 'other'] as DepositType[]).map((d) => (
@@ -246,7 +246,7 @@ export default function EditarTransacaoScreen() {
                     />
                   ))}
                 </View>
-              </>
+              </View>
             )}
 
             <View style={styles.espaco} />
@@ -293,7 +293,7 @@ export default function EditarTransacaoScreen() {
               placeholder="Ex.: aluguel, freelance..."
             />
 
-            <Text style={styles.rotulo}>Categoria</Text>
+            <Text style={[styles.rotulo, styles.grupo]}>Categoria</Text>
             <ChipGroup
               opcoes={CATEGORIES}
               selecionado={categoria}
@@ -373,6 +373,8 @@ const styles = StyleSheet.create({
   card: { backgroundColor: Colors.surface, borderRadius: Radius.lg, padding: Spacing.lg },
   rotulo: { fontSize: FontSize.sm, fontWeight: '600', color: Colors.text, marginBottom: Spacing.xs },
   linhaChips: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
+  // Mesmo respiro entre grupos usado na tela de nova transação.
+  grupo: { marginTop: Spacing.lg },
   espaco: { height: Spacing.md },
   espacoPequeno: { height: Spacing.sm },
   campoData: {

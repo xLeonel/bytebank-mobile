@@ -158,10 +158,12 @@ export default function ExtratoScreen() {
 
 const styles = StyleSheet.create({
   tela: { flex: 1, backgroundColor: Colors.background },
-  cabecalho: { paddingHorizontal: Spacing.md, paddingTop: Spacing.md },
+  cabecalho: { paddingHorizontal: Spacing.md, paddingTop: Spacing.md, paddingBottom: Spacing.sm },
   titulo: { fontSize: FontSize.lg, fontWeight: '700', color: Colors.text },
   rotuloFiltro: {
-    marginTop: Spacing.md,
+    // lg, não md: os chips têm altura própria e com espaço menor o rótulo do
+    // filtro seguinte parece pertencer ao grupo de cima.
+    marginTop: Spacing.lg,
     fontSize: FontSize.xs,
     fontWeight: '600',
     color: Colors.textSecondary,
