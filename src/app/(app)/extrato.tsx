@@ -158,7 +158,9 @@ export default function ExtratoScreen() {
 
 const styles = StyleSheet.create({
   tela: { flex: 1, backgroundColor: Colors.background },
-  cabecalho: { paddingHorizontal: Spacing.md, paddingTop: Spacing.md, paddingBottom: Spacing.sm },
+  // O paddingBottom fecha o bloco de filtros; junto com o marginTop da lista
+  // dá a mesma respiração que separa os cards na home.
+  cabecalho: { paddingHorizontal: Spacing.md, paddingTop: Spacing.md, paddingBottom: Spacing.md },
   titulo: { fontSize: FontSize.lg, fontWeight: '700', color: Colors.text },
   rotuloFiltro: {
     // lg, não md: os chips têm altura própria e com espaço menor o rótulo do
@@ -174,7 +176,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
     borderRadius: Radius.lg,
     marginHorizontal: Spacing.md,
-    marginTop: Spacing.sm,
+    marginTop: Spacing.md,
     marginBottom: Spacing.md,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
