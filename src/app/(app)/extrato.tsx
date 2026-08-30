@@ -5,6 +5,7 @@ import { ActivityIndicator, FlatList, StyleSheet, Text, View } from 'react-nativ
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ChipGroup } from '@/components/Chip';
+import { Select } from '@/components/Select';
 import { Shimmer } from '@/components/Shimmer';
 import { TransactionRow } from '@/components/TransactionRow';
 import { Colors, FontSize, Radius, Spacing } from '@/constants/theme';
@@ -98,8 +99,14 @@ export default function ExtratoScreen() {
           rotulo={(t) => TYPE_LABEL[t]}
         />
 
-        <Text style={styles.rotuloFiltro}>Categoria</Text>
-        <ChipGroup opcoes={CATEGORIES} selecionado={categoria} onSelecionar={setCategoria} />
+        <View style={styles.filtroCategoria}>
+          <Select
+            label="Categoria"
+            opcoes={CATEGORIES}
+            selecionado={categoria}
+            onSelecionar={setCategoria}
+          />
+        </View>
       </View>
 
       {carregandoInicial ? (
@@ -170,6 +177,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: Colors.textSecondary,
   },
+  filtroCategoria: { marginTop: Spacing.lg },
   // Card branco envolvendo a lista, como no web: separa o conteúdo do fundo
   // verde-claro da tela e dá contraste às linhas.
   lista: {
@@ -189,11 +197,15 @@ const styles = StyleSheet.create({
   },
   esqueletoTexto: { flex: 1, marginRight: Spacing.md },
   esqueletoEspaco: { marginTop: Spacing.xs },
+  // Padding em vez de só marginTop: dentro do card branco a mensagem tinha
+  // espaço acima mas encostava embaixo.
   vazio: {
     textAlign: 'center',
-    marginTop: Spacing.xl,
+    paddingVertical: Spacing.xl,
+    paddingHorizontal: Spacing.lg,
     fontSize: FontSize.sm,
     color: Colors.textSecondary,
+    lineHeight: 20,
   },
   rodape: { paddingVertical: Spacing.md },
   fim: {

@@ -1,4 +1,4 @@
-import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Colors, FontSize, Radius, Spacing } from '@/constants/theme';
 
@@ -23,7 +23,18 @@ export function Chip({ label, ativo, onPress }: ChipProps) {
   );
 }
 
-/** Faixa horizontal rolável de chips — usada nos filtros do extrato. */
+/**
+ * Grade de chips que quebra linha — nunca rola.
+ *
+ * A versão anterior era uma faixa com rolagem horizontal, e isso é ruim em
+ * duas frentes: o usuário não vê quais opções existem sem arrastar às cegas, e
+ * o gesto horizontal compete com a rolagem vertical da tela. Com poucas opções
+ * curtas, mostrar todas de uma vez custa uma ou duas linhas e elimina o
+ * problema.
+ *
+ * Para conjuntos longos (as 11 categorias), use `Select` — em grade elas
+ * tomariam quatro linhas e empurrariam o conteúdo da tela para baixo.
+ */
 export function ChipGroup<T extends string>({
   opcoes,
   selecionado,
@@ -40,12 +51,7 @@ export function ChipGroup<T extends string>({
   rotulo?: (valor: T) => string;
 }) {
   return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.grupo}
-      keyboardShouldPersistTaps="handled"
-    >
+    <View style={styles.grupo}>
       <Chip label={rotuloTodos} ativo={selecionado === null} onPress={() => onSelecionar(null)} />
       {opcoes.map((opcao) => (
         <Chip
@@ -55,18 +61,24 @@ export function ChipGroup<T extends string>({
           onPress={() => onSelecionar(selecionado === opcao ? null : opcao)}
         />
       ))}
-    </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  grupo: { gap: Spacing.sm, paddingVertical: Spacing.xs },
+  grupo: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.xs,
+  },
   chip: {
+    minHeight: 40, // alvo de toque confortável
+    justifyContent: 'center',
     borderWidth: 1,
     borderColor: Colors.border,
     borderRadius: Radius.pill,
     paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
     backgroundColor: Colors.surface,
   },
   ativo: { backgroundColor: Colors.primary, borderColor: Colors.primary },

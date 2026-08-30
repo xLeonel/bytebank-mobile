@@ -11,8 +11,14 @@ export const Colors = {
   /** Âmbar — destaque, links e a ação principal sobre o verde. */
   warning: '#F59E0B',
 
-  /** Fundo geral das telas logadas. */
-  background: '#E7EFE5',
+  /**
+   * Fundo geral das telas logadas.
+   *
+   * Mais saturado que o verde do web (#E7EFE5): aquele tom depende da
+   * calibração da tela e em muitos celulares lê como branco, apagando a
+   * distinção entre o fundo e os cards brancos.
+   */
+  background: '#D4E2CF',
   surface: '#FFFFFF',
 
   text: '#1E293B',

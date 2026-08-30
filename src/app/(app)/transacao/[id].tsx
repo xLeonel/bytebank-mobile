@@ -15,8 +15,9 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/Button';
-import { Chip, ChipGroup } from '@/components/Chip';
+import { Chip } from '@/components/Chip';
 import { Input } from '@/components/Input';
+import { Select } from '@/components/Select';
 import { ReciboPicker } from '@/components/ReciboPicker';
 import { Colors, FontSize, Radius, Spacing } from '@/constants/theme';
 import { useAuth } from '@/contexts/AuthContext';
@@ -293,13 +294,16 @@ export default function EditarTransacaoScreen() {
               placeholder="Ex.: aluguel, freelance..."
             />
 
-            <Text style={[styles.rotulo, styles.grupo]}>Categoria</Text>
-            <ChipGroup
-              opcoes={CATEGORIES}
-              selecionado={categoria}
-              onSelecionar={setCategoria}
-              rotuloTodos="Nenhuma"
-            />
+            <View style={styles.grupo}>
+              <Select
+                label="Categoria"
+                opcoes={CATEGORIES}
+                selecionado={categoria}
+                onSelecionar={setCategoria}
+                rotuloVazio="Nenhuma"
+                error={erros.categoria}
+              />
+            </View>
 
             {ehPix && (
               <>
