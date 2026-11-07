@@ -6,13 +6,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ReciboPicker } from '@/modules/transactions/presentation/components/ReciboPicker';
 import { TransacaoForm } from '@/modules/transactions/presentation/components/TransacaoForm';
 import { useTransacaoForm } from '@/modules/transactions/presentation/hooks/useTransacaoForm';
-import { useTransactions } from '@/modules/transactions/presentation/TransactionsContext';
+import { useAcoesDeTransacao } from '@/modules/transactions/presentation/hooks/useTransacoes';
 import { Button } from '@/shared/ui/Button';
 import { Colors, FontSize, Spacing } from '@/shared/ui/theme';
 
 export default function NovaTransacaoScreen() {
   const router = useRouter();
-  const { criar } = useTransactions();
+  const { criar } = useAcoesDeTransacao();
   const form = useTransacaoForm({ sugerirCategoria: true });
 
   const [reciboUri, setReciboUri] = useState<string | null>(null);

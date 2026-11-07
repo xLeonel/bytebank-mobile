@@ -33,7 +33,9 @@
     "react-native-screens": "~4.30.1",
     "react-native-svg": "15.16.0",
     "react-native-web": "^0.21.4",
-    "react-native-worklets": "0.13.0"
+    "react-native-worklets": "0.13.0",
+    "rxjs": "^7.8.2",
+    "zustand": "^5.1.0"
   },
   "devDependencies": {
     "@types/react": "~19.3.0",
@@ -49,7 +51,7 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
-    "test": "tsx src/tests/domain.test.ts && tsx src/tests/useCases.test.ts",
+    "test": "tsx src/tests/domain.test.ts && tsx src/tests/useCases.test.ts && tsx src/tests/stores.test.ts",
     "seed": "tsx --env-file=.env.local scripts/seed.ts",
     "verify": "npm run typecheck && npm run test && expo export --platform android --output-dir .verify && node -e \"require('fs').rmSync('.verify',{recursive:true,force:true})\""
   },

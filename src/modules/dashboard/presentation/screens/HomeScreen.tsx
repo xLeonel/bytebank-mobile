@@ -11,14 +11,17 @@ import { HomeSkeleton } from '@/modules/dashboard/presentation/components/HomeSk
 import { TransactionRow } from '@/modules/transactions/presentation/components/TransactionRow';
 import { Colors, FontSize, Radius, Spacing } from '@/shared/ui/theme';
 import { useAuth } from '@/modules/auth/presentation/AuthContext';
-import { useTransactions } from '@/modules/transactions/presentation/TransactionsContext';
+import { useTransacoes } from '@/modules/transactions/presentation/hooks/useTransacoes';
 import { formatBrl, formatTodayGreeting } from '@/shared/domain/format';
 
 const ULTIMAS = 5;
 
 export default function HomeScreen() {
   const { user, profile } = useAuth();
-  const { transacoes, saldo, carregando, erro } = useTransactions();
+  const transacoes = useTransacoes((e) => e.transacoes);
+  const saldo = useTransacoes((e) => e.saldo);
+  const carregando = useTransacoes((e) => e.carregando);
+  const erro = useTransacoes((e) => e.erro);
   const [saldoVisivel, setSaldoVisivel] = useState(true);
   const router = useRouter();
 

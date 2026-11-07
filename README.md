@@ -196,13 +196,25 @@ Security Rules. A regra de negócio que antes rodava num servidor foi redistribu
 |---|---|
 | Sinal do valor por tipo/destino | `transactions/domain/transaction.applySign`, aplicado nos casos de uso |
 | Ordenação por data | `orderBy` no Firestore + rede de segurança no domínio |
-| Cálculo de saldo | derivado no `TransactionsContext` |
+| Cálculo de saldo | derivado em `transactions/application/transactionsStore` |
 | Guard de autorização | `firestore.rules` |
 
-**Estado global com Context API**, como o desafio pede:
+**Estado e programação reativa.** Cada tipo de estado usa a ferramenta adequada:
 
-- `AuthContext` — sessão, perfil e as operações de autenticação
-- `TransactionsContext` — transações em tempo real, saldo derivado e CRUD
+| Estado | Onde fica | Por quê |
+|---|---|---|
+| Sessão e perfil | `AuthContext` (Context API) | Muda raramente: login, logout e edição do perfil |
+| Transações em tempo real e saldo | `transactionsStore` (Zustand) | Muda a cada escrita. Com seletores, cada tela renderiza de novo só quando o valor que lê muda, e os formulários que só gravam não assinam a lista |
+| Extrato: filtros e páginas | `extratoStore` (Zustand + RxJS) | Consultas assíncronas que competem entre si |
+
+As stores ficam na camada de aplicação, sem React, e são testadas com um repositório
+falso que libera cada resposta à mão. O fluxo do extrato é uma composição de operadores:
+
+- `switchMap` nos filtros: filtro novo cancela a consulta anterior, então uma resposta
+  atrasada nunca entra na lista errada;
+- `exhaustMap` no "carregar mais": a rajada do `onEndReached` vira uma consulta só;
+- `debounceTime` + `switchMap` nas alterações: criar, editar ou excluir uma transação
+  recarrega o que já estava aberto, sem perder a posição da rolagem.
 
 As medições de performance e o passo a passo para repeti-las estão em
 [docs/performance.md](docs/performance.md).

@@ -1,22 +1,16 @@
 import { useRouter } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, FlatList, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { CATEGORIES } from '@/modules/transactions/domain/category';
+import { TRANSACTION_TYPES, TYPE_LABEL_CURTO } from '@/modules/transactions/domain/transaction';
+import type { TransactionType } from '@/modules/transactions/domain/types';
+import { TransactionRow } from '@/modules/transactions/presentation/components/TransactionRow';
+import { useExtrato } from '@/modules/transactions/presentation/hooks/useExtrato';
 import { SegmentedControl, type OpcaoDeSegmento } from '@/shared/ui/SegmentedControl';
 import { Select } from '@/shared/ui/Select';
 import { Shimmer } from '@/shared/ui/Shimmer';
-import { TransactionRow } from '@/modules/transactions/presentation/components/TransactionRow';
 import { Colors, FontSize, Radius, Spacing } from '@/shared/ui/theme';
-import { casosDeTransacoes } from '@/composition/container';
-import { useAuth } from '@/modules/auth/presentation/AuthContext';
-import type { CursorDePagina } from '@/modules/transactions/application/ports';
-import { CATEGORIES, type Category } from '@/modules/transactions/domain/category';
-import { TRANSACTION_TYPES, TYPE_LABEL_CURTO } from '@/modules/transactions/domain/transaction';
-import type { Filtros, Transaction, TransactionType } from '@/modules/transactions/domain/types';
-import { iniciarMedicao } from '@/shared/ui/marcarPerf';
-
-const POR_PAGINA = 15;
 
 const OPCOES_DE_TIPO: OpcaoDeSegmento<TransactionType | null>[] = [
   { valor: null, rotulo: 'Todos' },
@@ -24,82 +18,9 @@ const OPCOES_DE_TIPO: OpcaoDeSegmento<TransactionType | null>[] = [
 ];
 
 export default function ExtratoScreen() {
-  const uid = useAuth().user?.uid;
   const router = useRouter();
-
-  const [tipo, setTipo] = useState<TransactionType | null>(null);
-  const [categoria, setCategoria] = useState<Category | null>(null);
-
-  const [itens, setItens] = useState<Transaction[]>([]);
-  const [cursor, setCursor] = useState<CursorDePagina | null>(null);
-  const [acabou, setAcabou] = useState(false);
-  const [consultaCarregada, setConsultaCarregada] = useState<Filtros | null>(null);
-  const [carregandoMais, setCarregandoMais] = useState(false);
-  const [erro, setErro] = useState<string | null>(null);
-
-  const filtros = useMemo<Filtros>(
-    () => ({
-      ...(tipo ? { type: tipo } : {}),
-      ...(categoria ? { category: categoria } : {}),
-    }),
-    [tipo, categoria],
-  );
-
-  // Trocar de filtro já conta como carregando, no mesmo render da troca.
-  const carregandoInicial = consultaCarregada !== filtros;
-
-  /**
-   * Recarrega do zero. Roda na montagem e sempre que um filtro muda — o cursor
-   * de uma consulta não vale para outra, então precisa ser descartado junto.
-   */
-  useEffect(() => {
-    if (!uid) return;
-    let cancelado = false;
-
-    const medirPagina = iniciarMedicao('primeira pagina do extrato');
-    casosDeTransacoes
-      .buscarPagina(uid, { filtros, tamanho: POR_PAGINA })
-      .then((pagina) => {
-        if (cancelado) return;
-        medirPagina();
-        setItens(pagina.itens);
-        setCursor(pagina.cursor);
-        setAcabou(pagina.acabou);
-        setErro(null);
-      })
-      .catch((e: Error) => {
-        if (!cancelado) setErro(e.message);
-      })
-      .finally(() => {
-        if (!cancelado) setConsultaCarregada(filtros);
-      });
-
-    return () => {
-      cancelado = true;
-    };
-  }, [uid, filtros]);
-
-  const carregarMais = useCallback(async () => {
-    // Sem as guardas, o onEndReached dispara em rajada durante a rolagem e
-    // pediria a mesma página várias vezes, duplicando itens na lista.
-    if (!uid || !cursor || acabou || carregandoMais || carregandoInicial) return;
-
-    setCarregandoMais(true);
-    try {
-      const pagina = await casosDeTransacoes.buscarPagina(uid, {
-        filtros,
-        cursor,
-        tamanho: POR_PAGINA,
-      });
-      setItens((atuais) => [...atuais, ...pagina.itens]);
-      setCursor(pagina.cursor);
-      setAcabou(pagina.acabou);
-    } catch (e) {
-      setErro((e as Error).message);
-    } finally {
-      setCarregandoMais(false);
-    }
-  }, [uid, cursor, acabou, carregandoMais, carregandoInicial, filtros]);
+  const { filtros, itens, acabou, carregandoInicial, carregandoMais, erro, filtrar, carregarMais } =
+    useExtrato();
 
   return (
     <SafeAreaView style={styles.tela} edges={['top']}>
@@ -110,16 +31,16 @@ export default function ExtratoScreen() {
           <SegmentedControl
             rotulo="Filtrar por tipo"
             opcoes={OPCOES_DE_TIPO}
-            selecionado={tipo}
-            onSelecionar={setTipo}
+            selecionado={filtros.type ?? null}
+            onSelecionar={(tipo) => filtrar({ type: tipo ?? undefined })}
           />
           <Select
             label="Categoria"
             ocultarRotulo
             rotuloVazio="Todas as categorias"
             opcoes={CATEGORIES}
-            selecionado={categoria}
-            onSelecionar={setCategoria}
+            selecionado={filtros.category ?? null}
+            onSelecionar={(categoria) => filtrar({ category: categoria ?? undefined })}
           />
         </View>
       </View>

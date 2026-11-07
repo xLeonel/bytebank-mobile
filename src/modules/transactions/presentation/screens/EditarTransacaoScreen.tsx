@@ -19,7 +19,7 @@ import type { Attachment } from '@/modules/transactions/domain/types';
 import { ReciboPicker } from '@/modules/transactions/presentation/components/ReciboPicker';
 import { TransacaoForm } from '@/modules/transactions/presentation/components/TransacaoForm';
 import { useTransacaoForm } from '@/modules/transactions/presentation/hooks/useTransacaoForm';
-import { useTransactions } from '@/modules/transactions/presentation/TransactionsContext';
+import { useAcoesDeTransacao } from '@/modules/transactions/presentation/hooks/useTransacoes';
 import { Button } from '@/shared/ui/Button';
 import { confirmar } from '@/shared/ui/confirmar';
 import { Colors, FontSize, Spacing } from '@/shared/ui/theme';
@@ -28,7 +28,7 @@ export default function EditarTransacaoScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const uid = useAuth().user?.uid;
-  const { atualizar, remover } = useTransactions();
+  const { atualizar, remover } = useAcoesDeTransacao();
   const form = useTransacaoForm();
   const { preencher, setErroGeral } = form;
 
