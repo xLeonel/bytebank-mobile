@@ -32,6 +32,49 @@ type Props = {
   onRemoverPendente?: () => void;
 };
 
+/** Miniatura tocável — abre o comprovante em tela cheia. */
+function Miniatura({
+  uri,
+  rotulo,
+  onAmpliar,
+  onExcluir,
+}: {
+  uri: string;
+  rotulo: string;
+  onAmpliar: (uri: string) => void;
+  onExcluir?: () => void;
+}) {
+  return (
+    <View style={styles.miniaturaArea}>
+      <Pressable
+        onPress={() => onAmpliar(uri)}
+        accessibilityRole="imagebutton"
+        accessibilityLabel={`Ampliar ${rotulo}`}
+        style={({ pressed }) => pressed && styles.pressionado}
+      >
+        <Image source={{ uri }} style={styles.miniatura} />
+        {/* Lupa sinalizando que a miniatura é tocável: sem ela, a única
+            pista de que dá para ampliar seria descobrir por tentativa. */}
+        <View style={styles.lupa}>
+          <Ionicons name="expand-outline" size={12} color={Colors.onPrimary} />
+        </View>
+      </Pressable>
+
+      {!!onExcluir && (
+        <Pressable
+          onPress={onExcluir}
+          accessibilityRole="button"
+          accessibilityLabel={`Remover ${rotulo}`}
+          hitSlop={8}
+          style={styles.remover}
+        >
+          <Ionicons name="close" size={14} color={Colors.onPrimary} />
+        </Pressable>
+      )}
+    </View>
+  );
+}
+
 /**
  * Seleção e visualização de recibo — câmera ou galeria.
  *
@@ -87,47 +130,6 @@ export function ReciboPicker({
     });
   }
 
-  /** Miniatura tocável — abre o comprovante em tela cheia. */
-  function Miniatura({
-    uri,
-    rotulo,
-    onExcluir,
-  }: {
-    uri: string;
-    rotulo: string;
-    onExcluir?: () => void;
-  }) {
-    return (
-      <View style={styles.miniaturaArea}>
-        <Pressable
-          onPress={() => setAmpliada(uri)}
-          accessibilityRole="imagebutton"
-          accessibilityLabel={`Ampliar ${rotulo}`}
-          style={({ pressed }) => pressed && styles.pressionado}
-        >
-          <Image source={{ uri }} style={styles.miniatura} />
-          {/* Lupa sinalizando que a miniatura é tocável: sem ela, a única
-              pista de que dá para ampliar seria descobrir por tentativa. */}
-          <View style={styles.lupa}>
-            <Ionicons name="expand-outline" size={12} color={Colors.onPrimary} />
-          </View>
-        </Pressable>
-
-        {!!onExcluir && (
-          <Pressable
-            onPress={onExcluir}
-            accessibilityRole="button"
-            accessibilityLabel={`Remover ${rotulo}`}
-            hitSlop={8}
-            style={styles.remover}
-          >
-            <Ionicons name="close" size={14} color={Colors.onPrimary} />
-          </Pressable>
-        )}
-      </View>
-    );
-  }
-
   return (
     <View>
       <Text style={styles.rotulo}>Comprovante (opcional)</Text>
@@ -138,6 +140,7 @@ export function ReciboPicker({
             <Miniatura
               uri={uriPendente}
               rotulo="comprovante selecionado"
+              onAmpliar={setAmpliada}
               onExcluir={onRemoverPendente}
             />
           )}
@@ -146,6 +149,7 @@ export function ReciboPicker({
               key={anexo.path}
               uri={anexo.url}
               rotulo={`recibo ${anexo.name}`}
+              onAmpliar={setAmpliada}
               onExcluir={onRemover ? () => confirmarRemocao(anexo) : undefined}
             />
           ))}

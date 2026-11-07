@@ -100,7 +100,7 @@ export default function HomeScreen() {
           {/* Só aparece quando há o que ver além das 5 — um link para "todas"
               que mostra o mesmo conteúdo seria promessa vazia. */}
           {transacoes.length > ULTIMAS && (
-            <Link href="/(app)/extrato" asChild>
+            <Link href="/(app)/(tabs)/extrato" asChild>
               <Pressable
                 style={styles.verTodas}
                 accessibilityRole="link"

@@ -32,11 +32,20 @@ type TransactionsContextValue = {
 
 const TransactionsContext = createContext<TransactionsContextValue | null>(null);
 
+type Carga = { uid: string; lista: Transaction[]; erro: string | null };
+
+const SEM_TRANSACOES: Transaction[] = [];
+
 export function TransactionsProvider({ children }: { children: ReactNode }) {
   const uid = useAuth().user?.uid;
-  const [transacoes, setTransacoes] = useState<Transaction[]>([]);
-  const [carregando, setCarregando] = useState(true);
-  const [erro, setErro] = useState<string | null>(null);
+  const [carga, setCarga] = useState<Carga | null>(null);
+
+  // A carga só vale para o usuário que a pediu: trocar de sessão a invalida aqui
+  // mesmo, sem um efeito para limpar o estado e um render com o dado anterior.
+  const cargaAtual = carga?.uid === uid ? carga : null;
+  const transacoes = cargaAtual?.lista ?? SEM_TRANSACOES;
+  const erro = cargaAtual?.erro ?? null;
+  const carregando = !!uid && !cargaAtual;
 
   /**
    * Assina o conjunto completo, não uma página.
@@ -49,14 +58,7 @@ export function TransactionsProvider({ children }: { children: ReactNode }) {
    * na Fase 2 exigia um evento no bus entre microfrontends.
    */
   useEffect(() => {
-    if (!uid) {
-      setTransacoes([]);
-      setCarregando(false);
-      return;
-    }
-
-    setCarregando(true);
-    setErro(null);
+    if (!uid) return;
 
     let medirPrimeiraCarga: (() => void) | null = iniciarMedicao('primeira carga das transacoes');
 
@@ -65,14 +67,16 @@ export function TransactionsProvider({ children }: { children: ReactNode }) {
       (lista) => {
         medirPrimeiraCarga?.();
         medirPrimeiraCarga = null;
-        setTransacoes(lista);
-        setCarregando(false);
+        setCarga({ uid, lista, erro: null });
       },
       (e) => {
         // A causa mais comum aqui é regra de segurança ou índice ausente — o
         // Firestore devolve a mensagem com o link para criar o índice.
-        setErro(e.message);
-        setCarregando(false);
+        setCarga((atual) => ({
+          uid,
+          lista: atual?.uid === uid ? atual.lista : SEM_TRANSACOES,
+          erro: e.message,
+        }));
       },
     );
 

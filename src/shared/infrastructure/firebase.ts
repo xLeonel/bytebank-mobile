@@ -9,6 +9,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
  * só na checagem de tipos. `@firebase/auth` declara a condição e entrega o
  * build certo; está no package.json como dependência direta para a resolução
  * não depender de hoisting transitivo.
+ *
+ * As versões de `firebase`, `@firebase/app` e `@firebase/auth` ficam fixas e têm
+ * de subir juntas: `firebase` exige versões internas exatas, e uma segunda cópia
+ * de `@firebase/app` no bundle derruba o app ao abrir com "Component auth has not
+ * been registered yet" — sem nenhum aviso no typecheck, no lint ou no export.
  */
 import {
   getAuth,

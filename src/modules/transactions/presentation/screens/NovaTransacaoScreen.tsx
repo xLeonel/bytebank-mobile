@@ -32,7 +32,7 @@ export default function NovaTransacaoScreen() {
       form.limpar();
       setReciboUri(null);
       setSucesso(true);
-      router.push('/(app)/home');
+      router.push('/(app)/(tabs)/home');
     } catch (e) {
       form.setErroGeral((e as Error).message);
     } finally {

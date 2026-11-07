@@ -34,7 +34,7 @@ function RotasProtegidas() {
     if (!user && !emAreaPublica) {
       router.replace('/(auth)/login');
     } else if (user && !emAreaLogada) {
-      router.replace('/(app)/home');
+      router.replace('/(app)/(tabs)/home');
     }
   }, [user, loading, segments, router]);
 

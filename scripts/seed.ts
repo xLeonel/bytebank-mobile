@@ -30,11 +30,11 @@ import {
   deleteDoc,
   doc,
   getDocs,
+  getFirestore,
   setDoc,
   Timestamp,
   writeBatch,
 } from 'firebase/firestore';
-import { getFirestore } from 'firebase/firestore';
 
 const DEMO_EMAIL = 'demo@bytebank.com';
 const DEMO_SENHA = '123456';
@@ -48,7 +48,7 @@ const VOLUME_PADRAO = 48;
 const TAMANHO_DO_LOTE = 500;
 
 function volumePedido(): number {
-  const arg = process.argv.find((a) => a.startsWith('--volume='));
+  const arg = process.argv.find((a: string) => a.startsWith('--volume='));
   const volume = arg ? Number(arg.split('=')[1]) : VOLUME_PADRAO;
   if (!Number.isInteger(volume) || volume <= 0) {
     console.error('--volume precisa ser um inteiro positivo, ex.: --volume=2000');

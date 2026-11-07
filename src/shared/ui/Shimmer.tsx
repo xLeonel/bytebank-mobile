@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { Animated, StyleSheet, type DimensionValue, type StyleProp, type ViewStyle } from 'react-native';
 
 import { Colors, Radius } from '@/shared/ui/theme';
@@ -22,7 +22,7 @@ type Props = {
  * animação de layout, mais pesada justo quando há menos folga.
  */
 export function Shimmer({ width = '100%', height = 16, radius = Radius.sm, style, claro }: Props) {
-  const opacidade = useRef(new Animated.Value(0.35)).current;
+  const [opacidade] = useState(() => new Animated.Value(0.35));
 
   useEffect(() => {
     const pulso = Animated.loop(

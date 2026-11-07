@@ -21,15 +21,15 @@ Tech Challenge — Fases 3 e 4 (FIAP Pós Tech).
 
 ## Pré-requisitos
 
-- **Node.js 20+**
+- **Node.js 22.13+** (ou 24.3+)
 - **Expo Go** no celular — [Android](https://play.google.com/store/apps/details?id=host.exp.exponent) · [iOS](https://apps.apple.com/app/expo-go/id982107779)
 - Uma conta Google para criar o projeto Firebase
 
-> **Atenção à versão do Expo Go.** Este projeto está no **SDK 54** porque é o que
-> o Expo Go das lojas suportava no momento do desenvolvimento. Quem dita o SDK é
-> o Expo Go instalado, não o `latest` do npm: abrir um projeto mais novo falha
-> com *"Project is incompatible with this version of Expo Go"*. Para usar um SDK
-> mais recente seria preciso gerar um development build (EAS).
+> **Atenção à versão do Expo Go.** Este projeto está no **SDK 58**. Quem dita o SDK
+> é o Expo Go instalado: se as versões não baterem, abrir o projeto falha com
+> *"Project is incompatible with this version of Expo Go"*. Em **Expo Go → Settings**
+> aparece o SDK suportado pelo aparelho. Para rodar em outro SDK seria preciso gerar
+> um development build (EAS).
 
 ---
 
@@ -150,6 +150,10 @@ Módulos por funcionalidade, cada um dividido nas camadas da Clean Architecture:
 ```
 src/
   app/                  rotas (expo-router): só layouts e reexportação das telas
+    (auth)/             login e cadastro
+    (app)/              área logada: pilha com as abas e as telas de detalhe
+      (tabs)/           início, nova transação, extrato e ajustes
+      transacao/[id]    edição, aberta por cima das abas
   composition/          raiz de composição: liga os casos de uso às implementações
   modules/
     auth/               sessão, login e cadastro

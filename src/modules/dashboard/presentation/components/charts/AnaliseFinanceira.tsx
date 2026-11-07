@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Animated, Easing, LayoutChangeEvent, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { EntradasSaidasChart } from '@/modules/dashboard/presentation/components/charts/EntradasSaidasChart';
@@ -45,8 +45,8 @@ export function AnaliseFinanceira({
   const [secao, setSecao] = useState<Secao>('mes');
   const [largura, setLargura] = useState(0);
 
-  const opacidade = useRef(new Animated.Value(1)).current;
-  const deslocamento = useRef(new Animated.Value(0)).current;
+  const [opacidade] = useState(() => new Animated.Value(1));
+  const [deslocamento] = useState(() => new Animated.Value(0));
 
   const porMes = useMemo(() => agruparPorMes(transacoes), [transacoes]);
   const porTipo = useMemo(() => agruparPorTipo(transacoes), [transacoes]);

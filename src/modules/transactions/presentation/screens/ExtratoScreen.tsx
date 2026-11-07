@@ -33,7 +33,7 @@ export default function ExtratoScreen() {
   const [itens, setItens] = useState<Transaction[]>([]);
   const [cursor, setCursor] = useState<CursorDePagina | null>(null);
   const [acabou, setAcabou] = useState(false);
-  const [carregandoInicial, setCarregandoInicial] = useState(true);
+  const [consultaCarregada, setConsultaCarregada] = useState<Filtros | null>(null);
   const [carregandoMais, setCarregandoMais] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
 
@@ -45,6 +45,9 @@ export default function ExtratoScreen() {
     [tipo, categoria],
   );
 
+  // Trocar de filtro já conta como carregando, no mesmo render da troca.
+  const carregandoInicial = consultaCarregada !== filtros;
+
   /**
    * Recarrega do zero. Roda na montagem e sempre que um filtro muda — o cursor
    * de uma consulta não vale para outra, então precisa ser descartado junto.
@@ -52,9 +55,6 @@ export default function ExtratoScreen() {
   useEffect(() => {
     if (!uid) return;
     let cancelado = false;
-
-    setCarregandoInicial(true);
-    setErro(null);
 
     const medirPagina = iniciarMedicao('primeira pagina do extrato');
     casosDeTransacoes
@@ -65,12 +65,13 @@ export default function ExtratoScreen() {
         setItens(pagina.itens);
         setCursor(pagina.cursor);
         setAcabou(pagina.acabou);
+        setErro(null);
       })
       .catch((e: Error) => {
         if (!cancelado) setErro(e.message);
       })
       .finally(() => {
-        if (!cancelado) setCarregandoInicial(false);
+        if (!cancelado) setConsultaCarregada(filtros);
       });
 
     return () => {
@@ -163,12 +164,12 @@ export default function ExtratoScreen() {
               <ActivityIndicator style={styles.rodape} color={Colors.primary} />
             ) : acabou && itens.length > 0 ? (
               <Text style={styles.fim}>Fim do extrato</Text>
-            ) : null
+            ) : undefined
           }
         />
       )}
 
-      {!!erro && (
+      {!!erro && !carregandoInicial && (
         <View style={styles.erroCaixa}>
           <Text style={styles.erroTexto}>{erro}</Text>
         </View>

@@ -32,9 +32,14 @@ npx expo export --platform android --output-dir .verify
 
 ## Resultados
 
-| Métrica | Fase 3 | Fase 4 |
+A migração do SDK 54 para o 58 mudou o ponto de partida do bundle: o Android foi de
+5,05 MB para 5,3 MB, e o iOS ficou em 5 MB. Compare as otimizações com estes valores
+do SDK 58. Os tempos ainda não foram medidos.
+
+| Métrica | Antes das otimizações | Depois |
 |---|---|---|
-| Bundle Android (Hermes) | 5,05 MB | a medir |
+| Bundle Android (Hermes) | 5,3 MB | a medir |
+| Bundle iOS (Hermes) | 5 MB | a medir |
 | Sessão resolvida | a medir | a medir |
 | Perfil carregado | a medir | a medir |
 | Primeira carga, 48 transações | a medir | a medir |
