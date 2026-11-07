@@ -16,6 +16,7 @@
  * Uso:
  *   npx tsx scripts/seed.ts
  *   npx tsx scripts/seed.ts --limpar
+ *   npx tsx scripts/seed.ts --limpar --volume=2000   (para medir performance)
  */
 import { initializeApp } from 'firebase/app';
 import {
@@ -42,7 +43,19 @@ const DEMO_AGENCIA = '0001';
 const DEMO_CONTA = '12345-6';
 
 const MESES = 8;
-const POR_MES = 6;
+const VOLUME_PADRAO = 48;
+// Limite de operações de um writeBatch no Firestore.
+const TAMANHO_DO_LOTE = 500;
+
+function volumePedido(): number {
+  const arg = process.argv.find((a) => a.startsWith('--volume='));
+  const volume = arg ? Number(arg.split('=')[1]) : VOLUME_PADRAO;
+  if (!Number.isInteger(volume) || volume <= 0) {
+    console.error('--volume precisa ser um inteiro positivo, ex.: --volume=2000');
+    process.exit(1);
+  }
+  return volume;
+}
 
 const config = {
   apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
@@ -148,11 +161,13 @@ async function main() {
   }
 
   const agora = new Date();
-  const lote = writeBatch(db);
+  const volume = volumePedido();
+  const porMes = Math.ceil(volume / MESES);
+  let lote = writeBatch(db);
   let criadas = 0;
 
   for (let m = 0; m < MESES; m++) {
-    for (let k = 0; k < POR_MES; k++) {
+    for (let k = 0; k < porMes && criadas < volume; k++) {
       const r = Math.random();
       let tipo: string;
       let valorBase: number;
@@ -205,6 +220,12 @@ async function main() {
 
       lote.set(doc(transacoes), doc_);
       criadas++;
+
+      if (criadas % TAMANHO_DO_LOTE === 0) {
+        await lote.commit();
+        lote = writeBatch(db);
+        console.log(`[seed] ${criadas}/${volume} transacoes gravadas`);
+      }
     }
   }
 

@@ -38,6 +38,7 @@
     "@types/react": "~19.1.10",
     "eslint": "^9.0.0",
     "eslint-config-expo": "~10.0.0",
+    "tsx": "^4.23.15",
     "typescript": "~5.9.2"
   },
   "scripts": {
@@ -47,9 +48,9 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
-    "test": "tsx src/domain/domain.test.ts",
+    "test": "tsx src/tests/domain.test.ts && tsx src/tests/useCases.test.ts",
     "seed": "tsx --env-file=.env.local scripts/seed.ts",
-    "verify": "npm run typecheck && npm run test && expo export --platform android --output-dir .verify && rm -rf .verify"
+    "verify": "npm run typecheck && npm run test && expo export --platform android --output-dir .verify && node -e \"require('fs').rmSync('.verify',{recursive:true,force:true})\""
   },
   "private": true
 }

@@ -3,7 +3,7 @@
 Aplicação de gerenciamento financeiro em **React Native + Expo**, com **Firebase**
 como backend (Authentication, Cloud Firestore e Cloud Storage).
 
-Tech Challenge — Fase 3 (FIAP Pós Tech).
+Tech Challenge — Fases 3 e 4 (FIAP Pós Tech).
 
 ---
 
@@ -134,6 +134,7 @@ npm run seed
 Login: **demo@bytebank.com** · senha: **123456**
 
 Para recriar do zero, use `npx tsx --env-file=.env.local scripts/seed.ts --limpar`.
+Acrescente `--volume=2000` para gerar mais transações e medir a performance.
 
 > O seed usa o SDK cliente, não o `firebase-admin`. Isso evita baixar uma chave
 > de conta de serviço — credencial privilegiada que não deveria circular num
@@ -144,15 +145,44 @@ Para recriar do zero, use `npx tsx --env-file=.env.local scripts/seed.ts --limpa
 
 ## Arquitetura
 
+Módulos por funcionalidade, cada um dividido nas camadas da Clean Architecture:
+
 ```
 src/
-  app/              rotas (expo-router)
-    (auth)/         login e cadastro
-    (app)/          area logada, com abas
-  components/       UI reutilizável, incluindo os gráficos
-  contexts/         estado global (Context API)
-  domain/           regras de negócio — TypeScript puro
-  lib/              fronteira com o Firebase
+  app/                  rotas (expo-router): só layouts e reexportação das telas
+  composition/          raiz de composição: liga os casos de uso às implementações
+  modules/
+    auth/               sessão, login e cadastro
+    profile/            perfil, foto e dados da conta
+    transactions/       transações, recibos, extrato e formulários
+    dashboard/          tela inicial e análise financeira
+      domain/           regras de negócio: TypeScript puro
+      application/      casos de uso e portas (contratos com o mundo externo)
+      infrastructure/   implementação das portas com o Firebase
+      presentation/     telas, componentes e estado de tela
+  shared/
+    domain/             formatação e validações genéricas
+    infrastructure/     inicialização do Firebase e envio de arquivos
+    ui/                 componentes genéricos e tema
+  tests/                testes de domínio e de casos de uso
+```
+
+Nem todo módulo tem todas as camadas: `dashboard` só deriva dados de `transactions`.
+
+**As dependências só apontam para dentro**, e o lint garante isso (`eslint.config.js`):
+
+| Camada | Pode importar | Não pode importar |
+|---|---|---|
+| `domain` | outros `domain` | framework, Firebase e qualquer outra camada |
+| `application` | `domain` | framework, Firebase, `infrastructure`, `presentation` |
+| `infrastructure` | `application`, `domain`, Firebase | `presentation`, `composition` |
+| `presentation` | `application`, `domain`, `composition`, `shared/ui` | Firebase, `infrastructure` |
+
+`composition/container.ts` é o único arquivo que conhece os dois lados. Por isso os
+casos de uso são testados com portas falsas em memória, sem Firebase nem emulador:
+
+```bash
+npm test
 ```
 
 **Sem backend próprio.** O app fala direto com o Firebase; a autorização vive nas
@@ -160,7 +190,7 @@ Security Rules. A regra de negócio que antes rodava num servidor foi redistribu
 
 | Antes (backend) | Agora |
 |---|---|
-| Sinal do valor por tipo/destino | `domain/transaction.applySign` |
+| Sinal do valor por tipo/destino | `transactions/domain/transaction.applySign`, aplicado nos casos de uso |
 | Ordenação por data | `orderBy` no Firestore + rede de segurança no domínio |
 | Cálculo de saldo | derivado no `TransactionsContext` |
 | Guard de autorização | `firestore.rules` |
@@ -170,5 +200,5 @@ Security Rules. A regra de negócio que antes rodava num servidor foi redistribu
 - `AuthContext` — sessão, perfil e as operações de autenticação
 - `TransactionsContext` — transações em tempo real, saldo derivado e CRUD
 
-**`src/domain/` não importa React nem Firebase.** É TypeScript puro, o que o torna
-testável sem emulador e sem renderizar componente.
+As medições de performance e o passo a passo para repeti-las estão em
+[docs/performance.md](docs/performance.md).

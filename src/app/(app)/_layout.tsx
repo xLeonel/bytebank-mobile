@@ -1,9 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import { StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Colors, FontSize, Spacing } from '@/constants/theme';
-import { TransactionsProvider } from '@/contexts/TransactionsContext';
+import { Colors } from '@/shared/ui/theme';
+import { TransactionsProvider } from '@/modules/transactions/presentation/TransactionsContext';
+
+// A altura padrão da barra (49) corta os rótulos abaixo dos ícones.
+const ALTURA_DA_BARRA = 60;
 
 /**
  * Layout da área logada — abas fixas na base.
@@ -13,6 +17,8 @@ import { TransactionsProvider } from '@/contexts/TransactionsContext';
  * consulta disparar antes da sessão existir, resultando em permission-denied.
  */
 export default function AppLayout() {
+  const insets = useSafeAreaInsets();
+
   return (
     <TransactionsProvider>
       <Tabs
@@ -20,7 +26,7 @@ export default function AppLayout() {
           headerShown: false,
           tabBarActiveTintColor: Colors.primary,
           tabBarInactiveTintColor: Colors.textMuted,
-          tabBarStyle: styles.barra,
+          tabBarStyle: [styles.barra, { height: ALTURA_DA_BARRA + insets.bottom }],
           tabBarLabelStyle: styles.rotulo,
           tabBarItemStyle: styles.item,
         }}
@@ -71,7 +77,6 @@ const styles = StyleSheet.create({
   barra: {
     backgroundColor: Colors.surface,
     borderTopColor: Colors.borderLight,
-    paddingTop: Spacing.xs,
   },
   // "Nova transação" é o rótulo mais longo; sem folga ele quebra em duas linhas
   // e desalinha a altura das abas.

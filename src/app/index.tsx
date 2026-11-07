@@ -1,6 +1,6 @@
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
-import { Colors } from '@/constants/theme';
+import { Colors } from '@/shared/ui/theme';
 
 /**
  * Rota raiz: existe só para dar um destino a `/`.

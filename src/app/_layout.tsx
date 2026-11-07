@@ -3,8 +3,8 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
-import { Colors } from '@/constants/theme';
-import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+import { Colors } from '@/shared/ui/theme';
+import { AuthProvider, useAuth } from '@/modules/auth/presentation/AuthContext';
 
 /**
  * Guarda de rota.
