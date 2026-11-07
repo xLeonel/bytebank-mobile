@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
@@ -146,11 +147,11 @@ export default function EditarTransacaoScreen() {
           <View style={styles.cabecalho}>
             <Pressable
               onPress={() => router.back()}
-              hitSlop={12}
               accessibilityRole="button"
               accessibilityLabel="Voltar"
+              style={({ pressed }) => [styles.voltar, pressed && styles.pressionado]}
             >
-              <Text style={styles.voltar}>Voltar</Text>
+              <Ionicons name="chevron-back" size={26} color={Colors.primary} />
             </Pressable>
             <Text style={styles.titulo}>Editar transação</Text>
           </View>
@@ -184,9 +185,18 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   centro: { alignItems: 'center', justifyContent: 'center', gap: Spacing.md, padding: Spacing.lg },
   conteudo: { padding: Spacing.md, paddingBottom: Spacing.xl },
-  cabecalho: { marginBottom: Spacing.md },
-  voltar: { fontSize: FontSize.sm, color: Colors.primary, fontWeight: '600' },
-  titulo: { fontSize: FontSize.lg, fontWeight: '700', color: Colors.text, marginTop: Spacing.xs },
+  cabecalho: { flexDirection: 'row', alignItems: 'center', marginBottom: Spacing.sm },
+  // 44 px de alvo de toque; a margem negativa alinha o desenho da seta, e não a
+  // área invisível em volta dela, com a borda do card abaixo.
+  voltar: {
+    width: 44,
+    height: 44,
+    marginLeft: -Spacing.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pressionado: { opacity: 0.6 },
+  titulo: { fontSize: FontSize.lg, fontWeight: '700', color: Colors.text },
   espaco: { height: Spacing.md },
   espacoPequeno: { height: Spacing.sm },
   vazio: { fontSize: FontSize.md, color: Colors.textSecondary },
