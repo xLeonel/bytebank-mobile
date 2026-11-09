@@ -18,7 +18,7 @@ const MENSAGENS: Record<CodigoErroAuth, string> = {
   'email-invalido': 'E-mail inválido.',
   'credenciais-invalidas': 'E-mail ou senha incorretos.',
   'email-em-uso': 'Este e-mail já está cadastrado.',
-  'senha-fraca': 'A senha precisa ter ao menos 6 caracteres.',
+  'senha-fraca': 'Escolha uma senha mais forte, com letras e números.',
   'muitas-tentativas': 'Muitas tentativas. Tente novamente em alguns minutos.',
   'sem-conexao': 'Sem conexão. Verifique sua internet.',
   desconhecido: 'Não foi possível concluir. Tente novamente.',

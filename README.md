@@ -98,9 +98,11 @@ npx firebase-tools deploy --only firestore:rules,firestore:indexes,storage
 
 Isso publica:
 
-- `firestore.rules` — cada usuário lê e escreve apenas sob `users/{uid}`
+- `firestore.rules` — cada usuário lê e escreve apenas sob `users/{uid}`, com validação
+  de campos, do sinal do valor e de dados que não podem mudar
 - `firestore.indexes.json` — índices compostos dos filtros do extrato
-- `storage.rules` — recibos e foto de perfil restritos ao dono, com limite de 5 MB
+- `storage.rules` — recibos e foto de perfil restritos ao dono, com limite de 5 MB e
+  lista fechada de tipos de arquivo
 
 > Os índices levam alguns minutos para construir. Enquanto isso, filtrar o
 > extrato pode falhar com um erro que traz um link direto para criar o índice.
@@ -215,6 +217,18 @@ falso que libera cada resposta à mão. O fluxo do extrato é uma composição d
 - `exhaustMap` no "carregar mais": a rajada do `onEndReached` vira uma consulta só;
 - `debounceTime` + `switchMap` nas alterações: criar, editar ou excluir uma transação
   recarrega o que já estava aberto, sem perder a posição da rolagem.
+
+**Segurança.**
+
+| Proteção | Como funciona |
+|---|---|
+| Sessão criptografada | O refresh token é gravado com AES-256-GCM. A chave fica no Keychain/Keystore (`expo-secure-store`), presa ao aparelho, e sessões antigas em texto puro são cifradas na primeira leitura |
+| Bloqueio local | Biometria ou senha do aparelho ao abrir com sessão restaurada e ao voltar de mais de 30 s em segundo plano. No Expo Go do iPhone o Face ID não está disponível, então vale a senha do aparelho; em um build próprio ele funciona |
+| Capa de privacidade | Esconde o saldo no alternador de apps enquanto o app está fora de foco |
+| Dados ao sair | Encerrar a sessão apaga da memória as transações e o extrato |
+| Recibos | O documento guarda só o caminho do arquivo: a URL dá acesso sem passar pelas regras do Storage, então é obtida só para exibir. Excluir a transação apaga também os arquivos |
+| Regras do Firebase | Validam campos, tamanhos e o sinal do valor, travam agência, conta e `createdAt`, e limitam os tipos de arquivo |
+| Senha de conta nova | Ao menos 8 caracteres, com letras e números |
 
 As medições de performance e o passo a passo para repeti-las estão em
 [docs/performance.md](docs/performance.md).

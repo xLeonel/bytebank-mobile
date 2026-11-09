@@ -4,10 +4,7 @@ import type { ComponentProps } from 'react';
 import { StyleSheet, type ColorValue } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Colors } from '@/shared/ui/theme';
-
-// A altura padrão da barra (49) corta os rótulos abaixo dos ícones.
-const ALTURA_DA_BARRA = 60;
+import { Colors, Layout } from '@/shared/ui/theme';
 
 // A navegação tipa a cor como ColorValue, que o Ionicons não aceita inteiro.
 function icone(nome: ComponentProps<typeof Ionicons>['name']) {
@@ -26,7 +23,7 @@ export default function TabsLayout() {
         headerShown: false,
         tabBarActiveTintColor: Colors.primary,
         tabBarInactiveTintColor: Colors.textMuted,
-        tabBarStyle: [styles.barra, { height: ALTURA_DA_BARRA + insets.bottom }],
+        tabBarStyle: [styles.barra, { height: Layout.alturaDaBarraDeAbas + insets.bottom }],
         tabBarLabelStyle: styles.rotulo,
         tabBarItemStyle: styles.item,
       }}

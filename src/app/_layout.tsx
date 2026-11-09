@@ -5,6 +5,8 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { Colors } from '@/shared/ui/theme';
 import { AuthProvider, useAuth } from '@/modules/auth/presentation/AuthContext';
+import { BloqueioDoApp } from '@/modules/auth/presentation/BloqueioDoApp';
+import { AvisoNaTela } from '@/shared/ui/Aviso';
 
 /**
  * Guarda de rota.
@@ -54,6 +56,8 @@ export default function RootLayout() {
     <AuthProvider>
       <StatusBar style="light" />
       <RotasProtegidas />
+      <AvisoNaTela />
+      <BloqueioDoApp />
     </AuthProvider>
   );
 }

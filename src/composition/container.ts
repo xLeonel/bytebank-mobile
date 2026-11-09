@@ -1,4 +1,6 @@
 import { criarCasosDeUsoDeAutenticacao } from '@/modules/auth/application/authUseCases';
+import { criarBloqueio } from '@/modules/auth/application/bloqueio';
+import { expoAutenticadorLocal } from '@/modules/auth/infrastructure/expoAutenticadorLocal';
 import { firebaseAuthGateway } from '@/modules/auth/infrastructure/firebaseAuthGateway';
 import { criarCasosDeUsoDePerfil } from '@/modules/profile/application/profileUseCases';
 import { firebaseAvatarStorage } from '@/modules/profile/infrastructure/firebaseAvatarStorage';
@@ -15,6 +17,8 @@ import { firestoreTransactionRepository } from '@/modules/transactions/infrastru
  * frente do repositório, muda só este arquivo.
  */
 export const casosDeAutenticacao = criarCasosDeUsoDeAutenticacao(firebaseAuthGateway);
+
+export const casosDeBloqueio = criarBloqueio(expoAutenticadorLocal);
 
 export const casosDePerfil = criarCasosDeUsoDePerfil({
   repositorio: firestoreProfileRepository,

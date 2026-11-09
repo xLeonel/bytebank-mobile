@@ -7,6 +7,7 @@ import { ReciboPicker } from '@/modules/transactions/presentation/components/Rec
 import { TransacaoForm } from '@/modules/transactions/presentation/components/TransacaoForm';
 import { useTransacaoForm } from '@/modules/transactions/presentation/hooks/useTransacaoForm';
 import { useAcoesDeTransacao } from '@/modules/transactions/presentation/hooks/useTransacoes';
+import { avisar } from '@/shared/ui/Aviso';
 import { Button } from '@/shared/ui/Button';
 import { Colors, FontSize, Spacing } from '@/shared/ui/theme';
 
@@ -17,21 +18,25 @@ export default function NovaTransacaoScreen() {
 
   const [reciboUri, setReciboUri] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
-  const [sucesso, setSucesso] = useState(false);
 
   async function handleSalvar() {
     const entrada = form.validar();
     if (!entrada) return;
 
     setEnviando(true);
-    setSucesso(false);
     try {
       const { erroDoRecibo } = await criar(entrada, reciboUri);
-      if (erroDoRecibo) console.warn('[recibo] falha ao anexar:', erroDoRecibo.message);
+      if (erroDoRecibo) {
+        console.warn('[recibo] falha ao anexar:', erroDoRecibo.message);
+        // A transação foi salva; só o comprovante ficou para trás, e sem este aviso
+        // o usuário só descobriria ao abrir a transação de novo.
+        avisar('Transação registrada, mas o comprovante não foi enviado. Anexe-o na edição.', 'atencao');
+      } else {
+        avisar('Transação registrada.');
+      }
 
       form.limpar();
       setReciboUri(null);
-      setSucesso(true);
       router.push('/(app)/(tabs)/home');
     } catch (e) {
       form.setErroGeral((e as Error).message);
@@ -60,12 +65,6 @@ export default function NovaTransacaoScreen() {
               />
             }
           >
-            {sucesso && (
-              <Text style={styles.sucesso} accessibilityRole="alert">
-                Transação registrada.
-              </Text>
-            )}
-
             <View style={styles.espaco} />
             <Button title="Concluir transação" onPress={handleSalvar} loading={enviando} />
           </TransacaoForm>
@@ -86,10 +85,4 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   espaco: { height: Spacing.md },
-  sucesso: {
-    marginTop: Spacing.md,
-    fontSize: FontSize.sm,
-    color: Colors.success,
-    textAlign: 'center',
-  },
 });

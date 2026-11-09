@@ -4,7 +4,8 @@ rules_version = '2';
 //
 // Substituem o que na Fase 2 era o JwtAuthGuard + filtro `{ user: userId }` no
 // backend NestJS. Como o app fala direto com o Firestore, sem servidor no meio,
-// estas regras são a ÚNICA barreira entre o dado de um usuário e o de outro.
+// estas regras são a ÚNICA barreira entre o dado de um usuário e o de outro, e
+// também contra um cliente adulterado que chame a API sem passar pela tela.
 //
 // Publicar com:  firebase deploy --only firestore:rules
 service cloud.firestore {
@@ -18,33 +19,72 @@ service cloud.firestore {
       return autenticado() && request.auth.uid == uid;
     }
 
-    // Validação de forma. O sinal do valor é calculado no cliente
-    // (domain/transaction.ts), então aqui não dá para reconferir a regra de
-    // negócio — mas dá para impedir que o documento entre com tipo inventado
-    // ou campo de outro formato, o que quebraria a listagem e os gráficos.
+    function textoOpcional(d, campo, tamanho) {
+      return !(campo in d) || (d[campo] is string && d[campo].size() <= tamanho);
+    }
+
+    // O sinal é calculado no cliente (domain/transaction.applySign), mas a regra de
+    // negócio dá para reconferir: só depósito na própria conta credita.
+    function sinalCoerente(d) {
+      return d.type == 'deposito' && (!('depositType' in d) || d.depositType == 'own')
+        ? d.amount > 0
+        : d.amount < 0;
+    }
+
+    // Validação de forma: impede documento com tipo inventado, campo de outro
+    // formato ou campo extra, o que quebraria a listagem e os gráficos.
     function transacaoValida(d) {
-      return d.type in ['saque', 'deposito', 'pix']
+      return d.keys().hasAll(['type', 'amount', 'date', 'createdAt'])
+        && d.keys().hasOnly([
+          'type', 'depositType', 'amount', 'date', 'createdAt', 'description',
+          'category', 'agency', 'account', 'pixKey', 'attachments',
+        ])
+        && d.type in ['saque', 'deposito', 'pix']
         && d.amount is number
+        && sinalCoerente(d)
         && d.date is timestamp
         && d.createdAt is timestamp
         && (!('depositType' in d) || d.depositType in ['own', 'other'])
-        && (!('attachments' in d) || d.attachments is list)
-        && (!('description' in d) || d.description is string)
-        && (!('category' in d) || d.category is string);
+        && (!('attachments' in d) || (d.attachments is list && d.attachments.size() <= 10))
+        && textoOpcional(d, 'description', 200)
+        && textoOpcional(d, 'category', 40)
+        && textoOpcional(d, 'agency', 10)
+        && textoOpcional(d, 'account', 20)
+        && textoOpcional(d, 'pixKey', 140);
+    }
+
+    function perfilValido(d) {
+      return d.keys().hasAll(['name', 'email', 'agency', 'bankAccount'])
+        && d.keys().hasOnly(['name', 'email', 'agency', 'bankAccount', 'photoUrl'])
+        && d.name is string && d.name.size() <= 120
+        && d.email is string && d.email.size() <= 254
+        && d.agency is string && d.agency.size() <= 10
+        && d.bankAccount is string && d.bankAccount.size() <= 20
+        && textoOpcional(d, 'photoUrl', 2048);
     }
 
     match /users/{uid} {
       allow read: if ehDono(uid);
-      // create e update separados: o dono cria o próprio perfil no cadastro e
-      // pode atualizá-lo, mas nunca escrever no documento de outro usuário.
-      allow create, update: if ehDono(uid);
+      allow create: if ehDono(uid) && perfilValido(request.resource.data);
+      // Agência e conta são definidas uma vez: o dono edita o perfil, não o número
+      // da própria conta.
+      allow update: if ehDono(uid)
+        && perfilValido(request.resource.data)
+        && request.resource.data.agency == resource.data.agency
+        && request.resource.data.bankAccount == resource.data.bankAccount;
       // Sem delete: apagar o perfil deixaria as transações órfãs na subcoleção.
       allow delete: if false;
 
       match /transactions/{txId} {
         allow read: if ehDono(uid);
-        allow create: if ehDono(uid) && transacaoValida(request.resource.data);
-        allow update: if ehDono(uid) && transacaoValida(request.resource.data);
+        // `createdAt` desempata a ordenação e registra quando a transação entrou:
+        // vem do servidor na criação e não muda mais.
+        allow create: if ehDono(uid)
+          && transacaoValida(request.resource.data)
+          && request.resource.data.createdAt == request.time;
+        allow update: if ehDono(uid)
+          && transacaoValida(request.resource.data)
+          && request.resource.data.createdAt == resource.data.createdAt;
         allow delete: if ehDono(uid);
       }
     }

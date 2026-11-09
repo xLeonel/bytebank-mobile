@@ -24,9 +24,13 @@ export type Attachment = {
   type: string;
   /** Caminho no Storage: users/{uid}/receipts/{txId}/{arquivo}. */
   path: string;
-  /** Download URL pública gerada pelo Storage. */
-  url: string;
 };
+
+/**
+ * Recibo pronto para exibir. A URL não é gravada no documento: ela dá acesso ao
+ * arquivo a quem a tiver, sem passar pelas regras do Storage.
+ */
+export type AnexoVisivel = Attachment & { url: string };
 
 /** Transação no formato usado pelo app (já convertida do Firestore). */
 export type Transaction = {

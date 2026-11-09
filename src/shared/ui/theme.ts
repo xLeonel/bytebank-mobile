@@ -52,6 +52,11 @@ export const Radius = {
   pill: 999,
 } as const;
 
+export const Layout = {
+  /** A padrão (49) corta os rótulos abaixo dos ícones. Sem a área segura, somada à parte. */
+  alturaDaBarraDeAbas: 60,
+} as const;
+
 export const FontSize = {
   xs: 12,
   sm: 14,

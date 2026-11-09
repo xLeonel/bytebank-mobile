@@ -34,7 +34,7 @@ export function criarCasosDeUsoDePerfil({ repositorio, avatares }: Dependencias)
       const existente = await repositorio.buscar(usuario.uid);
       if (existente) return existente;
 
-      console.warn('[auth] perfil ausente para', usuario.uid, '- criando');
+      console.warn('[auth] perfil ausente - criando');
       const recuperado: UserProfile = {
         name: usuario.displayName ?? '',
         email: usuario.email ?? '',

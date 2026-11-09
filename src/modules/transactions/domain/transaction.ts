@@ -70,12 +70,11 @@ export function paraRegistro(entrada: TransactionInput): TransactionRecord {
 }
 
 /** Referência de um recibo já enviado, com o MIME type derivado do nome. */
-export function criarAnexo(nome: string, path: string, url: string): Attachment {
+export function criarAnexo(nome: string, path: string): Attachment {
   return {
     name: nome,
     type: nome.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'image/jpeg',
     path,
-    url,
   };
 }
 

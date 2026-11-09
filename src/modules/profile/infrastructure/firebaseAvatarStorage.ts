@@ -1,6 +1,10 @@
 import type { AvatarStorage } from '@/modules/profile/application/ports';
-import { enviarArquivo } from '@/shared/infrastructure/fileStorage';
+import { enviarArquivo, urlDoArquivo } from '@/shared/infrastructure/fileStorage';
 
 export const firebaseAvatarStorage: AvatarStorage = {
-  enviar: (uid, uriLocal) => enviarArquivo(`users/${uid}/avatar.jpg`, uriLocal),
+  async enviar(uid, uriLocal) {
+    const caminho = `users/${uid}/avatar.jpg`;
+    await enviarArquivo(caminho, uriLocal);
+    return urlDoArquivo(caminho);
+  },
 };

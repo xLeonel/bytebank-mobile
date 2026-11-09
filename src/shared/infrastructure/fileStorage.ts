@@ -11,13 +11,15 @@ import { storage } from './firebase';
  *
  * @param caminho destino no bucket, ex.: `users/{uid}/avatar.jpg`
  */
-export async function enviarArquivo(caminho: string, uriLocal: string): Promise<string> {
+export async function enviarArquivo(caminho: string, uriLocal: string): Promise<void> {
   const resposta = await fetch(uriLocal);
   const blob = await resposta.blob();
 
-  const referencia = ref(storage, caminho);
-  await uploadBytes(referencia, blob, { contentType: blob.type || 'image/jpeg' });
-  return getDownloadURL(referencia);
+  await uploadBytes(ref(storage, caminho), blob, { contentType: blob.type || 'image/jpeg' });
+}
+
+export function urlDoArquivo(caminho: string): Promise<string> {
+  return getDownloadURL(ref(storage, caminho));
 }
 
 export async function removerArquivo(caminho: string): Promise<void> {

@@ -15,12 +15,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { casosDeTransacoes } from '@/composition/container';
 import { useAuth } from '@/modules/auth/presentation/AuthContext';
-import type { Attachment } from '@/modules/transactions/domain/types';
+import type { AnexoVisivel } from '@/modules/transactions/domain/types';
 import { ReciboPicker } from '@/modules/transactions/presentation/components/ReciboPicker';
 import { TransacaoForm } from '@/modules/transactions/presentation/components/TransacaoForm';
 import { useTransacaoForm } from '@/modules/transactions/presentation/hooks/useTransacaoForm';
 import { useAcoesDeTransacao } from '@/modules/transactions/presentation/hooks/useTransacoes';
 import { Button } from '@/shared/ui/Button';
+import { avisar } from '@/shared/ui/Aviso';
 import { confirmar } from '@/shared/ui/confirmar';
 import { Colors, FontSize, Spacing } from '@/shared/ui/theme';
 
@@ -32,9 +33,15 @@ export default function EditarTransacaoScreen() {
   const form = useTransacaoForm();
   const { preencher, setErroGeral } = form;
 
+  // Aberta direto pela URL ou por um link, a tela não tem para onde voltar.
+  function voltar() {
+    if (router.canGoBack()) router.back();
+    else router.replace('/(app)/(tabs)/home');
+  }
+
   const [carregando, setCarregando] = useState(true);
   const [naoEncontrada, setNaoEncontrada] = useState(false);
-  const [anexos, setAnexos] = useState<Attachment[]>([]);
+  const [anexos, setAnexos] = useState<AnexoVisivel[]>([]);
   const [salvando, setSalvando] = useState(false);
   const [enviandoRecibo, setEnviandoRecibo] = useState(false);
 
@@ -44,14 +51,15 @@ export default function EditarTransacaoScreen() {
 
     casosDeTransacoes
       .buscarPorId(uid, id)
-      .then((tx) => {
+      .then(async (tx) => {
         if (cancelado) return;
         if (!tx) {
           setNaoEncontrada(true);
           return;
         }
         preencher(tx);
-        setAnexos(tx.attachments);
+        const visiveis = await casosDeTransacoes.comUrls(tx.attachments);
+        if (!cancelado) setAnexos(visiveis);
       })
       .catch((e: Error) => {
         if (!cancelado) setErroGeral(e.message);
@@ -72,7 +80,8 @@ export default function EditarTransacaoScreen() {
     setSalvando(true);
     try {
       await atualizar(id, entrada);
-      router.back();
+      avisar('Transação atualizada.');
+      voltar();
     } catch (e) {
       form.setErroGeral((e as Error).message);
     } finally {
@@ -89,7 +98,8 @@ export default function EditarTransacaoScreen() {
         if (!id) return;
         try {
           await remover(id);
-          router.back();
+          avisar('Transação excluída.');
+          voltar();
         } catch (e) {
           form.setErroGeral((e as Error).message);
         }
@@ -110,10 +120,10 @@ export default function EditarTransacaoScreen() {
     }
   }
 
-  async function desanexar(anexo: Attachment) {
+  async function desanexar(anexo: AnexoVisivel) {
     if (!uid || !id) return;
     try {
-      await casosDeTransacoes.removerRecibo(uid, id, anexo);
+      await casosDeTransacoes.removerRecibo(uid, id, anexo.path);
       setAnexos((atuais) => atuais.filter((a) => a.path !== anexo.path));
     } catch (e) {
       form.setErroGeral((e as Error).message);
@@ -132,7 +142,7 @@ export default function EditarTransacaoScreen() {
     return (
       <SafeAreaView style={[styles.tela, styles.centro]} edges={['top']}>
         <Text style={styles.vazio}>Transação não encontrada.</Text>
-        <Button title="Voltar" onPress={() => router.back()} variant="secondary" />
+        <Button title="Voltar" onPress={() => voltar()} variant="secondary" />
       </SafeAreaView>
     );
   }
@@ -146,7 +156,7 @@ export default function EditarTransacaoScreen() {
         <ScrollView contentContainerStyle={styles.conteudo} keyboardShouldPersistTaps="handled">
           <View style={styles.cabecalho}>
             <Pressable
-              onPress={() => router.back()}
+              onPress={() => voltar()}
               accessibilityRole="button"
               accessibilityLabel="Voltar"
               style={({ pressed }) => [styles.voltar, pressed && styles.pressionado]}

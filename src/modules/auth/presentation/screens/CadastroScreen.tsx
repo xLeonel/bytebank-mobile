@@ -12,6 +12,7 @@ import {
 import { Button } from '@/shared/ui/Button';
 import { Input } from '@/shared/ui/Input';
 import { Colors, FontSize, Radius, Spacing } from '@/shared/ui/theme';
+import { validarSenhaNova } from '@/modules/auth/domain/senha';
 import { useAuth } from '@/modules/auth/presentation/AuthContext';
 import { validateRequired } from '@/shared/domain/validation';
 
@@ -32,9 +33,7 @@ export default function CadastroScreen() {
       nome: validateRequired(nome, 'Nome').message,
       email: validateRequired(email, 'E-mail').message,
     };
-    // O Firebase também recusa senha curta, mas validar aqui evita uma ida à
-    // rede e dá a mensagem no campo certo em vez de um erro geral.
-    if (senha.length < 6) proximos.senha = 'A senha precisa ter ao menos 6 caracteres.';
+    proximos.senha = validarSenhaNova(senha).message;
     if (senha !== confirmacao) proximos.confirmacao = 'As senhas não conferem.';
 
     setErros(proximos);

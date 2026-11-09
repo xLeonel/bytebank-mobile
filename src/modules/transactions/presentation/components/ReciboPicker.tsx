@@ -14,13 +14,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { confirmar } from '@/shared/ui/confirmar';
 import { Colors, FontSize, Radius, Spacing } from '@/shared/ui/theme';
-import type { Attachment } from '@/modules/transactions/domain/types';
+import type { AnexoVisivel } from '@/modules/transactions/domain/types';
 
 type Props = {
-  anexos: Attachment[];
+  anexos: AnexoVisivel[];
   /** Recebe a URI local escolhida; o envio ao Storage é do chamador. */
   onEscolher: (uri: string) => Promise<void> | void;
-  onRemover?: (anexo: Attachment) => Promise<void> | void;
+  onRemover?: (anexo: AnexoVisivel) => Promise<void> | void;
   enviando?: boolean;
   desabilitado?: boolean;
   /**
@@ -121,7 +121,7 @@ export function ReciboPicker({
     if (!r.canceled && r.assets[0]) await onEscolher(r.assets[0].uri);
   }
 
-  function confirmarRemocao(anexo: Attachment) {
+  function confirmarRemocao(anexo: AnexoVisivel) {
     confirmar({
       titulo: 'Remover recibo',
       mensagem: 'O arquivo será apagado permanentemente.',

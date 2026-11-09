@@ -108,6 +108,7 @@ export function TransacaoForm({ form, recibo, children }: Props) {
         value={form.descricao}
         onChangeText={form.setDescricao}
         placeholder="Ex.: aluguel, freelance..."
+        maxLength={200}
       />
 
       <View style={styles.campo}>

@@ -41,15 +41,12 @@ export type TransactionRepository = {
   atualizar: (uid: string, id: string, registro: TransactionRecord) => Promise<void>;
   remover: (uid: string, id: string) => Promise<void>;
   adicionarAnexo: (uid: string, id: string, anexo: Attachment) => Promise<void>;
-  removerAnexo: (uid: string, id: string, anexo: Attachment) => Promise<void>;
+  removerAnexo: (uid: string, id: string, path: string) => Promise<void>;
 };
 
 export type ReceiptStorage = {
-  enviar: (
-    uid: string,
-    txId: string,
-    uriLocal: string,
-    nomeArquivo: string,
-  ) => Promise<Pick<Attachment, 'path' | 'url'>>;
+  /** Envia o arquivo e devolve o caminho dele no armazenamento. */
+  enviar: (uid: string, txId: string, uriLocal: string, nomeArquivo: string) => Promise<string>;
+  obterUrl: (path: string) => Promise<string>;
   remover: (path: string) => Promise<void>;
 };

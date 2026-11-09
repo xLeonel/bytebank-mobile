@@ -4,11 +4,12 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react';
 
-import { casosDeAutenticacao, casosDePerfil } from '@/composition/container';
+import { casosDeAutenticacao, casosDeBloqueio, casosDePerfil } from '@/composition/container';
 import type { SessionUser } from '@/modules/auth/domain/session';
 import type { UserProfile } from '@/modules/profile/domain/profile';
 import { marcarPerf } from '@/shared/ui/marcarPerf';
@@ -31,6 +32,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<SessionUser | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const cadastrando = useRef(false);
 
   /**
    * Rede de segurança contra tela travada.
@@ -61,10 +63,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // em shared/infrastructure/firebase, este listener dispara já com o usuário
   // restaurado após o app ser reaberto.
   useEffect(() => {
+    let primeiroEstado = true;
+
     return casosDeAutenticacao.observarSessao(async (usuarioAtual) => {
       console.log('[auth] estado resolvido:', usuarioAtual ? 'autenticado' : 'sem sessão');
       marcarPerf('sessao resolvida');
+
+      // Com usuário já no primeiro estado, a sessão foi restaurada ao abrir o app;
+      // depois disso, é um login que acabou de provar quem é o usuário.
+      if (!usuarioAtual) casosDeBloqueio.aoSair();
+      else if (primeiroEstado) await casosDeBloqueio.aoRestaurarSessao();
+      else casosDeBloqueio.aoEntrar();
+      primeiroEstado = false;
+
       setUser(usuarioAtual);
+
+      // A conta de Auth nasce antes do documento de perfil: buscar aqui acharia o
+      // perfil "faltando" e criaria outro, com outro número de conta, competindo
+      // com o que o cadastro está gravando.
+      if (usuarioAtual && cadastrando.current) {
+        setLoading(false);
+        return;
+      }
+
       if (usuarioAtual) {
         try {
           setProfile(await casosDePerfil.carregarOuRecuperar(usuarioAtual));
@@ -88,8 +109,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signUp = useCallback(async (nome: string, email: string, password: string) => {
-    // Só esta parte pode derrubar o cadastro: sem conta de Auth não há sessão.
-    const usuario = await casosDeAutenticacao.cadastrar(nome, email, password);
+    cadastrando.current = true;
+    let usuario: SessionUser;
+    try {
+      // Só esta parte pode derrubar o cadastro: sem conta de Auth não há sessão.
+      usuario = await casosDeAutenticacao.cadastrar(nome, email, password);
+    } catch (e) {
+      cadastrando.current = false;
+      throw e;
+    }
     // O nome é gravado depois de a conta existir, então a sessão publicada pelo
     // observador ainda não o tem.
     setUser(usuario);
@@ -115,6 +143,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         (e as Error)?.message,
         '- sera recriado na proxima carga',
       );
+    } finally {
+      cadastrando.current = false;
     }
   }, []);
 

@@ -1,9 +1,9 @@
 import {
   addDoc,
-  arrayRemove,
   arrayUnion,
   collection,
   deleteDoc,
+  deleteField,
   doc,
   getDoc,
   getDocs,
@@ -11,6 +11,7 @@ import {
   onSnapshot,
   orderBy,
   query,
+  runTransaction,
   serverTimestamp,
   startAfter,
   Timestamp,
@@ -27,8 +28,10 @@ import type {
 } from '@/modules/transactions/application/ports';
 import type { Category } from '@/modules/transactions/domain/category';
 import type {
+  Attachment,
   Filtros,
   Transaction,
+  TransactionRecord,
   TransactionType,
 } from '@/modules/transactions/domain/types';
 import { db } from '@/shared/infrastructure/firebase';
@@ -66,8 +69,23 @@ function paraDominio(snap: QueryDocumentSnapshot<DocumentData>): Transaction {
     agency: d.agency,
     account: d.account,
     pixKey: d.pixKey,
-    attachments: d.attachments ?? [],
+    // Documentos antigos também trazem a URL do arquivo, que não deve circular.
+    attachments: ((d.attachments ?? []) as Attachment[]).map(({ name, type, path }) => ({
+      name,
+      type,
+      path,
+    })),
   };
+}
+
+/**
+ * Campos que dependem do tipo. Na edição, os que deixaram de valer precisam ser
+ * apagados: trocar um Pix por saque não pode deixar a chave Pix no documento.
+ */
+const CAMPOS_OPCIONAIS = ['depositType', 'description', 'category', 'agency', 'account', 'pixKey'] as const;
+
+function apagandoOsAusentes(registro: TransactionRecord) {
+  return Object.fromEntries(CAMPOS_OPCIONAIS.map((c) => [c, registro[c] ?? deleteField()]));
 }
 
 /** Remove chaves indefinidas: o Firestore recusa `undefined` em campo. */
@@ -148,11 +166,13 @@ export const firestoreTransactionRepository: TransactionRepository = {
     return ref.id;
   },
 
-  async atualizar(uid, id, { date, ...resto }) {
-    await updateDoc(
-      documento(uid, id),
-      semUndefined({ ...resto, date: Timestamp.fromDate(date) }),
-    );
+  async atualizar(uid, id, registro) {
+    await updateDoc(documento(uid, id), {
+      ...apagandoOsAusentes(registro),
+      type: registro.type,
+      amount: registro.amount,
+      date: Timestamp.fromDate(registro.date),
+    });
   },
 
   async remover(uid, id) {
@@ -165,7 +185,14 @@ export const firestoreTransactionRepository: TransactionRepository = {
     await updateDoc(documento(uid, id), { attachments: arrayUnion(anexo) });
   },
 
-  async removerAnexo(uid, id, anexo) {
-    await updateDoc(documento(uid, id), { attachments: arrayRemove(anexo) });
+  // Por caminho, em transação: o arrayRemove exige o objeto idêntico, e os recibos
+  // antigos ainda têm a URL gravada junto.
+  async removerAnexo(uid, id, path) {
+    await runTransaction(db, async (t) => {
+      const ref = documento(uid, id);
+      const snap = await t.get(ref);
+      const anexos = (snap.data()?.attachments ?? []) as Attachment[];
+      t.update(ref, { attachments: anexos.filter((a) => a.path !== path) });
+    });
   },
 };

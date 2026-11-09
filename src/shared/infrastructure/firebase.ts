@@ -1,4 +1,3 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 /**
  * Auth vem de `@firebase/auth`, não do guarda-chuva `firebase/auth`.
  *
@@ -25,6 +24,8 @@ import { getApp, getApps, initializeApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import { Platform } from 'react-native';
+
+import { armazenamentoDoAparelho } from './armazenamentoDoAparelho';
 
 /**
  * Inicialização do Firebase.
@@ -58,7 +59,8 @@ if (faltando.length) {
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
 /**
- * `initializeAuth` com persistência explícita em AsyncStorage.
+ * `initializeAuth` com persistência explícita no armazenamento criptografado:
+ * a sessão inclui o refresh token, que não pode ficar em texto puro no aparelho.
  *
  * Sem isto o `getAuth()` padrão usa memória em React Native e o usuário é
  * deslogado a cada vez que o app é fechado — o SDK só avisa com um warning
@@ -75,7 +77,7 @@ if (Platform.OS === 'web') {
   auth = getAuth(app);
 } else {
   try {
-    auth = initializeAuth(app, { persistence: getReactNativePersistence(AsyncStorage) });
+    auth = initializeAuth(app, { persistence: getReactNativePersistence(armazenamentoDoAparelho) });
   } catch {
     // Já inicializado (Fast Refresh): reaproveita a instância existente em vez
     // de estourar "auth/already-initialized".
