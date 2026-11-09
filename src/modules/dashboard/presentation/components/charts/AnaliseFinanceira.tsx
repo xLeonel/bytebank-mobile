@@ -1,12 +1,23 @@
-import { useMemo, useState } from 'react';
+import { lazy, Suspense, useMemo, useState } from 'react';
 import { Animated, Easing, LayoutChangeEvent, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { EntradasSaidasChart } from '@/modules/dashboard/presentation/components/charts/EntradasSaidasChart';
-import { MovimentacaoPorTipoChart } from '@/modules/dashboard/presentation/components/charts/MovimentacaoPorTipoChart';
-import { SaldoEvolucaoChart } from '@/modules/dashboard/presentation/components/charts/SaldoEvolucaoChart';
 import { Colors, FontSize, Radius, Spacing } from '@/shared/ui/theme';
 import { agruparPorMes, agruparPorTipo, evolucaoDoSaldo } from '@/modules/dashboard/domain/analytics';
 import type { Transaction } from '@/modules/transactions/domain/types';
+
+/**
+ * Cada gráfico é carregado na primeira vez que aparece. Quem abre o app e não
+ * troca de seção não paga pelos outros dois, nem pelo código de SVG deles.
+ */
+const EntradasSaidasChart = lazy(() =>
+  import('./EntradasSaidasChart').then((m) => ({ default: m.EntradasSaidasChart })),
+);
+const MovimentacaoPorTipoChart = lazy(() =>
+  import('./MovimentacaoPorTipoChart').then((m) => ({ default: m.MovimentacaoPorTipoChart })),
+);
+const SaldoEvolucaoChart = lazy(() =>
+  import('./SaldoEvolucaoChart').then((m) => ({ default: m.SaldoEvolucaoChart })),
+);
 
 type Secao = 'mes' | 'tipo' | 'saldo';
 
@@ -48,9 +59,13 @@ export function AnaliseFinanceira({
   const [opacidade] = useState(() => new Animated.Value(1));
   const [deslocamento] = useState(() => new Animated.Value(0));
 
-  const porMes = useMemo(() => agruparPorMes(transacoes), [transacoes]);
-  const porTipo = useMemo(() => agruparPorTipo(transacoes), [transacoes]);
-  const curva = useMemo(() => evolucaoDoSaldo(transacoes, saldo), [transacoes, saldo]);
+  // Só o agregado da seção visível: os três percorrem a lista inteira, e a cada
+  // transação nova seriam recalculados mesmo sem aparecer.
+  const dados = useMemo(() => {
+    if (secao === 'mes') return { secao, porMes: agruparPorMes(transacoes) } as const;
+    if (secao === 'tipo') return { secao, porTipo: agruparPorTipo(transacoes) } as const;
+    return { secao, curva: evolucaoDoSaldo(transacoes, saldo) } as const;
+  }, [secao, transacoes, saldo]);
 
   function trocarPara(destino: Secao) {
     if (destino === secao) return;
@@ -130,11 +145,11 @@ export function AnaliseFinanceira({
           style={{ opacity: opacidade, transform: [{ translateX: deslocamento }] }}
         >
           {largura > 0 && (
-            <>
-              {secao === 'mes' && <EntradasSaidasChart dados={porMes} largura={largura} />}
-              {secao === 'tipo' && <MovimentacaoPorTipoChart dados={porTipo} />}
-              {secao === 'saldo' && <SaldoEvolucaoChart dados={curva} largura={largura} />}
-            </>
+            <Suspense fallback={null}>
+              {dados.secao === 'mes' && <EntradasSaidasChart dados={dados.porMes} largura={largura} />}
+              {dados.secao === 'tipo' && <MovimentacaoPorTipoChart dados={dados.porTipo} />}
+              {dados.secao === 'saldo' && <SaldoEvolucaoChart dados={dados.curva} largura={largura} />}
+            </Suspense>
           )}
         </Animated.View>
       </View>

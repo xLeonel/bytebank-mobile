@@ -1,11 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { useState } from 'react';
-import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '@/shared/ui/Button';
 import { confirmar } from '@/shared/ui/confirmar';
+import { prepararImagem } from '@/shared/ui/prepararImagem';
 import { Colors, FontSize, Radius, Spacing } from '@/shared/ui/theme';
 import { casosDePerfil } from '@/composition/container';
 import { useAuth } from '@/modules/auth/presentation/AuthContext';
@@ -37,15 +39,16 @@ export default function ConfiguracoesScreen() {
       mediaTypes: ['images'],
       allowsEditing: true,
       aspect: [1, 1],
-      // Comprime antes de subir: a regra do Storage limita a 5 MB, e uma foto
-      // de câmera moderna passa disso com folga.
-      quality: 0.6,
+      // Qualidade máxima aqui: a compressão acontece uma vez só, em prepararImagem.
+      quality: 1,
     });
     if (resultado.canceled || !resultado.assets[0]) return;
 
     setEnviandoFoto(true);
     try {
-      const url = await casosDePerfil.enviarFoto(user!.uid, resultado.assets[0].uri);
+      // A foto aparece num círculo de 72 pt: 512 px sobra até em tela de alta densidade.
+      const foto = await prepararImagem(resultado.assets[0], 512);
+      const url = await casosDePerfil.enviarFoto(user!.uid, foto);
       await atualizarPerfil({ photoUrl: url });
     } catch (e) {
       setErro((e as Error).message);
@@ -78,7 +81,13 @@ export default function ConfiguracoesScreen() {
               style={styles.avatarArea}
             >
               {profile?.photoUrl ? (
-                <Image source={{ uri: profile.photoUrl }} style={styles.avatar} />
+                <Image
+                  source={{ uri: profile.photoUrl }}
+                  style={styles.avatar}
+                  contentFit="cover"
+                  cachePolicy="memory-disk"
+                  transition={150}
+                />
               ) : (
                 <View style={[styles.avatar, styles.avatarVazio]}>
                   <Text style={styles.iniciais}>{iniciais}</Text>

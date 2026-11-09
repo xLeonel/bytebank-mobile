@@ -1,9 +1,8 @@
 import { Stack, useRouter, useSegments } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
-import { Colors } from '@/shared/ui/theme';
 import { AuthProvider, useAuth } from '@/modules/auth/presentation/AuthContext';
 import { BloqueioDoApp } from '@/modules/auth/presentation/BloqueioDoApp';
 import { AvisoNaTela } from '@/shared/ui/Aviso';
@@ -17,6 +16,10 @@ import { AvisoNaTela } from '@/shared/ui/Aviso';
  * revogado. Enquanto `loading`, não se redireciona: navegar antes de o estado
  * resolver mandaria todo mundo para o login no boot.
  */
+// A splash nativa fica até a sessão resolver: sem isto, entre ela e a primeira
+// tela aparecia um spinner numa tela vazia.
+SplashScreen.preventAutoHideAsync();
+
 function RotasProtegidas() {
   const { user, loading } = useAuth();
   const segments = useSegments();
@@ -40,13 +43,11 @@ function RotasProtegidas() {
     }
   }, [user, loading, segments, router]);
 
-  if (loading) {
-    return (
-      <View style={styles.carregando}>
-        <ActivityIndicator size="large" color={Colors.primary} />
-      </View>
-    );
-  }
+  useEffect(() => {
+    if (!loading) void SplashScreen.hideAsync();
+  }, [loading]);
+
+  if (loading) return null;
 
   return <Stack screenOptions={{ headerShown: false }} />;
 }
@@ -61,12 +62,3 @@ export default function RootLayout() {
     </AuthProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  carregando: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: Colors.background,
-  },
-});

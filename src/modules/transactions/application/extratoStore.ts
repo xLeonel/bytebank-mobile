@@ -75,6 +75,7 @@ export function criarStoreDoExtrato({
   const store = createStore<EstadoDoExtrato>(() => INICIAL);
   const filtros$ = new BehaviorSubject<Filtros>(INICIAL.filtros);
   const pedidosDeMais$ = new Subject<void>();
+  let conexao: { uid: string; usos: number; encerrar: () => void } | null = null;
 
   function falhar(erro: Error) {
     store.setState({ erro: erro.message, carregandoInicial: false, carregandoMais: false });
@@ -125,49 +126,75 @@ export function criarStoreDoExtrato({
       pedidosDeMais$.next();
     },
 
-    /** Mantém o extrato ativo para o usuário até o retorno ser chamado. */
+    /**
+     * Mantém o extrato ativo para o usuário até o retorno ser chamado.
+     *
+     * Quem conectar primeiro abre a consulta, e ela só fecha quando todos
+     * soltarem: o pré-carregamento e a tela do extrato compartilham a mesma lista
+     * em vez de cada um buscar a sua.
+     */
     conectar(uid: string): () => void {
-      const assinatura = filtros$
-        .pipe(
-          distinctUntilChanged(mesmosFiltros),
-          tap(() =>
-            store.setState({ itens: [], carregandoInicial: true, carregandoMais: false, erro: null }),
-          ),
-          switchMap((filtros) => {
-            let carregados = tamanhoDaPagina;
+      if (conexao && conexao.uid !== uid) {
+        conexao.encerrar();
+        conexao = null;
+      }
+      conexao ??= { uid, usos: 0, encerrar: abrir(uid) };
+      conexao.usos++;
 
-            return alteracoes$.pipe(
-              debounceTime(esperaDeAlteracao),
-              startWith(undefined),
-              switchMap(() =>
-                from(repositorio.buscarPagina(uid, { filtros, tamanho: carregados })).pipe(
-                  tap((pagina) =>
-                    store.setState({
-                      itens: pagina.itens,
-                      acabou: pagina.acabou,
-                      carregandoInicial: false,
-                      carregandoMais: false,
-                      erro: null,
-                    }),
-                  ),
-                  switchMap((pagina) =>
-                    aoFinalDaLista(uid, filtros, pagina, (n) => {
-                      carregados = n;
-                    }),
-                  ),
-                  catchError(falhar),
-                ),
-              ),
-            );
-          }),
-        )
-        .subscribe();
-
+      let solto = false;
       return () => {
-        assinatura.unsubscribe();
-        store.setState(INICIAL, true);
-        filtros$.next(INICIAL.filtros);
+        if (solto || conexao?.uid !== uid) return;
+        solto = true;
+        conexao.usos--;
+        if (conexao.usos === 0) {
+          conexao.encerrar();
+          conexao = null;
+        }
       };
     },
   };
+
+  function abrir(uid: string): () => void {
+    const assinatura = filtros$
+      .pipe(
+        distinctUntilChanged(mesmosFiltros),
+        tap(() =>
+          store.setState({ itens: [], carregandoInicial: true, carregandoMais: false, erro: null }),
+        ),
+        switchMap((filtros) => {
+          let carregados = tamanhoDaPagina;
+
+          return alteracoes$.pipe(
+            debounceTime(esperaDeAlteracao),
+            startWith(undefined),
+            switchMap(() =>
+              from(repositorio.buscarPagina(uid, { filtros, tamanho: carregados })).pipe(
+                tap((pagina) =>
+                  store.setState({
+                    itens: pagina.itens,
+                    acabou: pagina.acabou,
+                    carregandoInicial: false,
+                    carregandoMais: false,
+                    erro: null,
+                  }),
+                ),
+                switchMap((pagina) =>
+                  aoFinalDaLista(uid, filtros, pagina, (n) => {
+                    carregados = n;
+                  }),
+                ),
+                catchError(falhar),
+              ),
+            ),
+          );
+        }),
+      )
+      .subscribe();
+
+    return () => {
+      assinatura.unsubscribe();
+      store.setState(INICIAL, true);
+      filtros$.next(INICIAL.filtros);
+    };
+  }
 }

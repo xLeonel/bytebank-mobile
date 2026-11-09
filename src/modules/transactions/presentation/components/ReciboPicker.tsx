@@ -1,9 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { useState } from 'react';
 import {
   ActivityIndicator,
-  Image,
   Modal,
   Pressable,
   StyleSheet,
@@ -13,8 +13,12 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { confirmar } from '@/shared/ui/confirmar';
+import { prepararImagem } from '@/shared/ui/prepararImagem';
 import { Colors, FontSize, Radius, Spacing } from '@/shared/ui/theme';
 import type { AnexoVisivel } from '@/modules/transactions/domain/types';
+
+/** Lado maior do recibo enviado: o texto de um comprovante segue legível. */
+const LADO_MAXIMO = 1600;
 
 type Props = {
   anexos: AnexoVisivel[];
@@ -52,7 +56,16 @@ function Miniatura({
         accessibilityLabel={`Ampliar ${rotulo}`}
         style={({ pressed }) => pressed && styles.pressionado}
       >
-        <Image source={{ uri }} style={styles.miniatura} />
+        <Image
+          source={{ uri }}
+          style={styles.miniatura}
+          contentFit="cover"
+          // Só em memória: comprovante financeiro não fica num cache de disco
+          // sem criptografia.
+          cachePolicy="memory"
+          recyclingKey={uri}
+          transition={150}
+        />
         {/* Lupa sinalizando que a miniatura é tocável: sem ela, a única
             pista de que dá para ampliar seria descobrir por tentativa. */}
         <View style={styles.lupa}>
@@ -101,13 +114,9 @@ export function ReciboPicker({
       setErro('Permissão de acesso às fotos negada.');
       return;
     }
-    const r = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      // Comprime antes de subir: a regra do Storage limita a 5 MB e foto de
-      // câmera moderna passa disso com folga.
-      quality: 0.6,
-    });
-    if (!r.canceled && r.assets[0]) await onEscolher(r.assets[0].uri);
+    // Qualidade máxima aqui: a compressão acontece uma vez só, em prepararImagem.
+    const r = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 1 });
+    if (!r.canceled && r.assets[0]) await onEscolher(await prepararImagem(r.assets[0], LADO_MAXIMO));
   }
 
   async function abrirCamera() {
@@ -117,8 +126,8 @@ export function ReciboPicker({
       setErro('Permissão de acesso à câmera negada.');
       return;
     }
-    const r = await ImagePicker.launchCameraAsync({ quality: 0.6 });
-    if (!r.canceled && r.assets[0]) await onEscolher(r.assets[0].uri);
+    const r = await ImagePicker.launchCameraAsync({ quality: 1 });
+    if (!r.canceled && r.assets[0]) await onEscolher(await prepararImagem(r.assets[0], LADO_MAXIMO));
   }
 
   function confirmarRemocao(anexo: AnexoVisivel) {
@@ -227,7 +236,8 @@ export function ReciboPicker({
                   style={styles.imagemAmpliada}
                   // contain para o comprovante caber inteiro: cortar justamente
                   // a parte com o valor derrotaria o propósito de ampliar.
-                  resizeMode="contain"
+                  contentFit="contain"
+                  cachePolicy="memory"
                   accessibilityLabel="Comprovante ampliado"
                 />
               )}

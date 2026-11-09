@@ -282,12 +282,128 @@ function testarTransacoes() {
   eq('encerrar zera o saldo', estado().saldo, 0);
 }
 
+async function testarConexaoCompartilhada() {
+  console.log('\n--- extrato compartilhado entre pre-carga e tela ---');
+  const { extrato, chamadas, ids } = montarExtrato();
+
+  const soltarPreCarga = extrato.conectar('u1');
+  const soltarTela = extrato.conectar('u1');
+  eq('pre-carga e tela fazem uma consulta so', chamadas.length, 1);
+
+  chamadas[0].responder(pagina(['a', 'b']));
+  await passar();
+  soltarPreCarga();
+  eq('a tela segue com a lista apos a pre-carga soltar', ids(), ['a', 'b']);
+
+  soltarPreCarga();
+  eq('soltar duas vezes nao derruba a tela', ids(), ['a', 'b']);
+
+  soltarTela();
+  eq('sem ninguem conectado o extrato e limpo', ids(), []);
+
+  extrato.conectar('u1');
+  eq('conectar de novo consulta de novo', chamadas.length, 2);
+}
+
+async function testarCache() {
+  console.log('\n--- cache das transacoes ---');
+
+  function montar(cacheLista: Transaction[] | null = null) {
+    let emitir: (lista: Transaction[]) => void = () => {};
+    let responderCache: (lista: Transaction[] | null) => void = () => {};
+    const gravados: Transaction[][] = [];
+    const limpos: string[] = [];
+    const transacoes = criarStoreDasTransacoes(
+      {
+        observarTodas: (_uid, aoMudar) => {
+          emitir = aoMudar;
+          return () => {};
+        },
+      },
+      {
+        ler: () =>
+          cacheLista === null
+            ? new Promise((resolver) => (responderCache = resolver))
+            : Promise.resolve(cacheLista),
+        gravar: async (_uid, lista) => {
+          gravados.push(lista);
+        },
+        limpar: async (uid) => {
+          limpos.push(uid);
+        },
+      },
+      5,
+    );
+    return {
+      transacoes,
+      estado: () => transacoes.store.getState(),
+      emitir: (l: Transaction[]) => emitir(l),
+      responderCache: (l: Transaction[] | null) => responderCache(l),
+      gravados,
+      limpos,
+    };
+  }
+
+  {
+    const m = montar([tx('a', 500)]);
+    const encerrar = m.transacoes.sincronizar('u1');
+    await passar();
+    eq('abre com a lista do cache', m.estado().transacoes.map((t) => t.id), ['a']);
+    eq('saldo calculado do cache', m.estado().saldo, 500);
+    eq('marca que veio do cache', m.estado().doCache, true);
+    eq('nao fica carregando com o cache', m.estado().carregando, false);
+
+    m.emitir([tx('a', 500), tx('b', -100)]);
+    eq('a resposta do servidor substitui o cache', m.estado().saldo, 400);
+    eq('deixa de marcar cache', m.estado().doCache, false);
+
+    m.emitir([tx('a', 500)]);
+    m.emitir([tx('a', 500), tx('c', 1)]);
+    await passar(20);
+    eq('grava uma vez depois que as atualizacoes param', m.gravados.length, 1);
+    eq('grava a lista mais recente', m.gravados[0].map((t) => t.id), ['a', 'c']);
+
+    encerrar();
+    eq('sair da conta limpa o cache', m.limpos, ['u1']);
+  }
+
+  {
+    const m = montar();
+    const encerrar = m.transacoes.sincronizar('u1');
+    m.emitir([tx('servidor', 1)]);
+    m.responderCache([tx('antigo', 999)]);
+    await passar();
+    eq('cache lento nao sobrescreve o servidor', m.estado().transacoes.map((t) => t.id), ['servidor']);
+    encerrar();
+  }
+
+  {
+    const m = montar();
+    const encerrar = m.transacoes.sincronizar('u1');
+    encerrar();
+    m.responderCache([tx('outro-usuario', 1)]);
+    await passar();
+    eq('cache que chega apos sair e ignorado', m.estado().transacoes.length, 0);
+  }
+
+  {
+    const m = montar();
+    const encerrar = m.transacoes.sincronizar('u1');
+    m.emitir([tx('a', 1)]);
+    encerrar();
+    await passar(20);
+    eq('sair antes da gravacao cancela a gravacao', m.gravados.length, 0);
+  }
+}
+
 async function main() {
   await testarPaginacao();
   await testarFiltros();
   await testarAlteracoes();
   await testarFalhas();
   testarTransacoes();
+  await testarConexaoCompartilhada();
+  await testarCache();
   finalizar();
 }
 

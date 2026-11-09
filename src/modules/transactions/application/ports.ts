@@ -44,6 +44,13 @@ export type TransactionRepository = {
   removerAnexo: (uid: string, id: string, path: string) => Promise<void>;
 };
 
+/** Última lista conhecida, para a tela abrir antes da resposta do servidor. */
+export type CacheDeTransacoes = {
+  ler: (uid: string) => Promise<Transaction[] | null>;
+  gravar: (uid: string, transacoes: Transaction[]) => Promise<void>;
+  limpar: (uid: string) => Promise<void>;
+};
+
 export type ReceiptStorage = {
   /** Envia o arquivo e devolve o caminho dele no armazenamento. */
   enviar: (uid: string, txId: string, uriLocal: string, nomeArquivo: string) => Promise<string>;

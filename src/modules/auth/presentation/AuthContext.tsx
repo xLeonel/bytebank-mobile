@@ -64,6 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // restaurado após o app ser reaberto.
   useEffect(() => {
     let primeiroEstado = true;
+    let uidAtual: string | null = null;
 
     return casosDeAutenticacao.observarSessao(async (usuarioAtual) => {
       console.log('[auth] estado resolvido:', usuarioAtual ? 'autenticado' : 'sem sessão');
@@ -76,31 +77,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       else casosDeBloqueio.aoEntrar();
       primeiroEstado = false;
 
+      uidAtual = usuarioAtual?.uid ?? null;
       setUser(usuarioAtual);
+      if (!usuarioAtual) setProfile(null);
+
+      // Libera a tela sem esperar o perfil: ele só completa o card com nome e
+      // conta, e esperá-lo deixava a abertura presa a uma ida ao servidor.
+      setLoading(false);
 
       // A conta de Auth nasce antes do documento de perfil: buscar aqui acharia o
       // perfil "faltando" e criaria outro, com outro número de conta, competindo
       // com o que o cadastro está gravando.
-      if (usuarioAtual && cadastrando.current) {
-        setLoading(false);
-        return;
-      }
+      if (!usuarioAtual || cadastrando.current) return;
 
-      if (usuarioAtual) {
-        try {
-          setProfile(await casosDePerfil.carregarOuRecuperar(usuarioAtual));
-          marcarPerf('perfil carregado');
-        } catch (e) {
-          // Perfil é complementar: sem ele o app funciona, só não mostra
-          // agência/conta. Mas engolir o erro em silêncio deixava impossível
-          // distinguir "documento não existe" de "regra negou a leitura".
-          console.warn('[auth] falha ao carregar o perfil:', (e as Error)?.message);
-          setProfile(null);
-        }
-      } else {
-        setProfile(null);
+      try {
+        const perfil = await casosDePerfil.carregarOuRecuperar(usuarioAtual);
+        // A sessão pode ter mudado enquanto o perfil chegava.
+        if (uidAtual !== usuarioAtual.uid) return;
+        setProfile(perfil);
+        marcarPerf('perfil carregado');
+      } catch (e) {
+        // Perfil é complementar: sem ele o app funciona, só não mostra
+        // agência/conta. Mas engolir o erro em silêncio deixava impossível
+        // distinguir "documento não existe" de "regra negou a leitura".
+        console.warn('[auth] falha ao carregar o perfil:', (e as Error)?.message);
+        if (uidAtual === usuarioAtual.uid) setProfile(null);
       }
-      setLoading(false);
     });
   }, []);
 

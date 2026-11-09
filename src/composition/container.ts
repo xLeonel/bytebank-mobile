@@ -1,3 +1,5 @@
+import { Platform } from 'react-native';
+
 import { criarCasosDeUsoDeAutenticacao } from '@/modules/auth/application/authUseCases';
 import { criarBloqueio } from '@/modules/auth/application/bloqueio';
 import { expoAutenticadorLocal } from '@/modules/auth/infrastructure/expoAutenticadorLocal';
@@ -10,6 +12,7 @@ import { criarStoreDasTransacoes } from '@/modules/transactions/application/tran
 import { criarCasosDeUsoDeTransacoes } from '@/modules/transactions/application/transactionUseCases';
 import { firebaseReceiptStorage } from '@/modules/transactions/infrastructure/firebaseReceiptStorage';
 import { firestoreTransactionRepository } from '@/modules/transactions/infrastructure/firestoreTransactionRepository';
+import { cacheDeTransacoesNoAparelho } from '@/modules/transactions/infrastructure/cacheDeTransacoesNoAparelho';
 
 /**
  * Raiz de composição: o único lugar que conhece as duas pontas, os casos de uso
@@ -30,7 +33,11 @@ export const casosDeTransacoes = criarCasosDeUsoDeTransacoes({
   recibos: firebaseReceiptStorage,
 });
 
-export const transacoesEmTempoReal = criarStoreDasTransacoes(firestoreTransactionRepository);
+// Sem cache no web: lá não há cofre para a chave, e o dado ficaria em texto puro.
+export const transacoesEmTempoReal = criarStoreDasTransacoes(
+  firestoreTransactionRepository,
+  Platform.OS === 'web' ? undefined : cacheDeTransacoesNoAparelho,
+);
 
 export const extratoReativo = criarStoreDoExtrato({
   repositorio: firestoreTransactionRepository,

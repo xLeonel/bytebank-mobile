@@ -20,10 +20,18 @@ export function useSincronizarTransacoes() {
   useEffect(() => {
     if (!uid) return;
 
-    const medir = iniciarMedicao('primeira carga das transacoes');
+    // Duas marcas: quando a lista aparece pelo cache e quando chega do servidor.
+    const medirCache = iniciarMedicao('transacoes exibidas do cache');
+    const medirServidor = iniciarMedicao('transacoes recebidas do servidor');
+    let cacheMedido = false;
     const pararDeMedir = transacoesEmTempoReal.store.subscribe((estado) => {
       if (estado.carregando) return;
-      medir();
+      if (estado.doCache) {
+        if (!cacheMedido) medirCache();
+        cacheMedido = true;
+        return;
+      }
+      medirServidor();
       pararDeMedir();
     });
 
