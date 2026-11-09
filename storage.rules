@@ -20,21 +20,23 @@ service firebase.storage {
       return request.resource.size < 5 * 1024 * 1024;
     }
 
+    // Lista fechada em vez de `image/.*`: SVG também é "imagem", e pode trazer
+    // script embutido.
     function ehImagem() {
-      return request.resource.contentType.matches('image/.*');
+      return request.resource.contentType.matches('image/(jpeg|png|webp|heic|heif)');
     }
 
     // Foto de perfil — só imagem.
     match /users/{uid}/avatar.jpg {
       allow read: if ehDono(uid);
-      allow write: if ehDono(uid) && tamanhoOk() && ehImagem();
+      allow create, update: if ehDono(uid) && tamanhoOk() && ehImagem();
       allow delete: if ehDono(uid);
     }
 
     // Recibos de transação — imagem ou PDF.
     match /users/{uid}/receipts/{txId}/{arquivo} {
       allow read: if ehDono(uid);
-      allow write: if ehDono(uid)
+      allow create, update: if ehDono(uid)
         && tamanhoOk()
         && (ehImagem() || request.resource.contentType == 'application/pdf');
       allow delete: if ehDono(uid);

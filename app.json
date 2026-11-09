@@ -28,12 +28,19 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
+          "backgroundColor": "#374C34",
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
         }
       ],
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      "expo-secure-store",
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Usamos o Face ID para proteger o acesso à sua conta."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
