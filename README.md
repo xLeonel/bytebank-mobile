@@ -11,11 +11,40 @@ Tech Challenge — Fases 3 e 4 (FIAP Pós Tech).
 
 | Tela | Recursos |
 |---|---|
-| **Login / Cadastro** | Autenticação por e-mail e senha, com sessão persistida entre aberturas |
+| **Login / Cadastro** | Autenticação por e-mail e senha, com sessão cifrada e bloqueio por biometria ou senha do aparelho |
 | **Início** | Saldo, dados da conta, análise financeira com gráficos e transições animadas, e as últimas transações |
 | **Nova transação** | Depósito, Saque e Transferência Pix, com validação de campos e upload de comprovante |
-| **Extrato** | Filtros por tipo e categoria, com scroll infinito paginado no Firestore |
+| **Extrato** | Filtros por tipo e categoria, scroll infinito paginado no Firestore e atualização automática |
 | **Ajustes** | Foto de perfil, dados da conta e saída da sessão |
+
+---
+
+## Fase 4: onde está cada requisito
+
+| Requisito do desafio | Onde está |
+|---|---|
+| Arquitetura modular e Clean Architecture | Módulos por funcionalidade em `src/modules`, com camadas separadas e a regra de dependência imposta pelo lint. Ver [Arquitetura](#arquitetura) |
+| State management avançado | Zustand com seletores, na camada de aplicação. Ver [Estado e programação reativa](#estado-e-programação-reativa) |
+| Programação reativa | Fluxo RxJS do extrato: filtros, paginação e atualização automática |
+| Lazy loading e pré-carregamento | Gráficos carregados sob demanda e extrato pré-carregado. Ver [docs/performance.md](docs/performance.md) |
+| Cache | Última lista de transações guardada no aparelho, cifrada |
+| Autenticação segura e criptografia | Sessão com AES-256-GCM e chave no Keychain/Keystore, bloqueio local e regras do Firebase. Ver [Segurança](#segurança) |
+
+---
+
+## Tecnologias utilizadas
+
+| Área | Tecnologia |
+|---|---|
+| App | React Native 0.88, React 19.3, Expo SDK 58, TypeScript 6 |
+| Navegação | Expo Router 58 (rotas por arquivo, pilha e abas) |
+| Backend | Firebase 12: Authentication, Cloud Firestore e Cloud Storage, com Security Rules |
+| Estado | Context API (sessão) e Zustand 5 (transações e extrato) |
+| Programação reativa | RxJS 7 |
+| Segurança | `@noble/ciphers` (AES-256-GCM), `expo-secure-store`, `expo-crypto`, `expo-local-authentication` |
+| Imagens | `expo-image`, `expo-image-picker`, `expo-image-manipulator` |
+| Gráficos | `react-native-svg` |
+| Qualidade | ESLint com a regra de camadas, React Compiler, testes com `tsx`, Expo Doctor |
 
 ---
 
@@ -84,6 +113,8 @@ EXPO_PUBLIC_FIREBASE_APP_ID=...
 **Passo obrigatório.** Sem ele o banco fica em modo padrão e o app falha com
 `Missing or insufficient permissions`.
 
+O login abre o navegador para você entrar com a conta Google dona do projeto:
+
 ```bash
 npx firebase-tools login
 ```
@@ -91,6 +122,9 @@ npx firebase-tools login
 ```bash
 npx firebase-tools use SEU_PROJECT_ID
 ```
+
+Para só checar se as regras compilam, sem publicar, acrescente `--dry-run` ao comando
+abaixo.
 
 ```bash
 npx firebase-tools deploy --only firestore:rules,firestore:indexes,storage
@@ -121,9 +155,30 @@ npx expo start
 
 Escaneie o QR com o Expo Go. Celular e computador precisam estar na mesma rede.
 
+> **Windows (PowerShell).** Se aparecer *"a execução de scripts foi desabilitada"*,
+> use `npx.cmd` no lugar de `npx`, por exemplo `npx.cmd expo start`. Não é preciso
+> mudar a política de execução do sistema.
+
+> **Login no Expo.** Se o Expo Go estiver logado numa conta, o projeto só abre com o
+> CLI logado na mesma conta (erro *"You're signed in to Expo Go as ..., but not
+> signed in to Expo CLI"*). Rode `npx expo login`. Se o navegador abrir com o endereço
+> cortado, use o link completo que o terminal mostra. Sem conta no Expo Go, o login
+> não é necessário.
+
 > Se o projeto não aparecer na lista do Expo Go, use **"Enter URL manually"** com
-> o endereço `exp://SEU_IP_LOCAL:8081`. A lista mostra apenas projetos da conta
-> Expo logada no CLI, e o login não é necessário para rodar em rede local.
+> o endereço `exp://SEU_IP_LOCAL:8081`.
+
+> **No navegador** (`npx expo start --web`), o app roda para conferir telas e fluxos,
+> mas câmera, biometria, seletor de data e o cache local só funcionam no celular.
+
+### Verificações
+
+| Comando | O que faz |
+|---|---|
+| `npm test` | Testes de domínio, casos de uso, stores e segurança, sem Firebase |
+| `npm run typecheck` | Checagem de tipos |
+| `npm run lint` | ESLint, incluindo a regra de dependência entre camadas |
+| `npm run verify` | Tipos, testes e o bundle Android gerado de ponta a ponta |
 
 ### Dados de demonstração
 
@@ -134,6 +189,10 @@ npm run seed
 ```
 
 Login: **demo@bytebank.com** · senha: **123456**
+
+> A senha demo é anterior à regra de senha da Fase 4 (8 caracteres, com letras e
+> números), que vale só para contas criadas pelo app. O seed cria a conta direto pelo
+> Firebase.
 
 Para recriar do zero, use `npx tsx --env-file=.env.local scripts/seed.ts --limpar`.
 Acrescente `--volume=2000` para gerar mais transações e medir a performance.
@@ -168,9 +227,9 @@ src/
       presentation/     telas, componentes e estado de tela
   shared/
     domain/             formatação e validações genéricas
-    infrastructure/     inicialização do Firebase e envio de arquivos
-    ui/                 componentes genéricos e tema
-  tests/                testes de domínio e de casos de uso
+    infrastructure/     Firebase, envio de arquivos e armazenamento criptografado
+    ui/                 componentes genéricos, tema e avisos
+  tests/                testes de domínio, casos de uso, stores e segurança
 ```
 
 Nem todo módulo tem todas as camadas: `dashboard` só deriva dados de `transactions`.
@@ -201,7 +260,9 @@ Security Rules. A regra de negócio que antes rodava num servidor foi redistribu
 | Cálculo de saldo | derivado em `transactions/application/transactionsStore` |
 | Guard de autorização | `firestore.rules` |
 
-**Estado e programação reativa.** Cada tipo de estado usa a ferramenta adequada:
+### Estado e programação reativa
+
+Cada tipo de estado usa a ferramenta adequada:
 
 | Estado | Onde fica | Por quê |
 |---|---|---|
@@ -218,17 +279,21 @@ falso que libera cada resposta à mão. O fluxo do extrato é uma composição d
 - `debounceTime` + `switchMap` nas alterações: criar, editar ou excluir uma transação
   recarrega o que já estava aberto, sem perder a posição da rolagem.
 
-**Segurança.**
+### Segurança
 
 | Proteção | Como funciona |
 |---|---|
 | Sessão criptografada | O refresh token é gravado com AES-256-GCM. A chave fica no Keychain/Keystore (`expo-secure-store`), presa ao aparelho, e sessões antigas em texto puro são cifradas na primeira leitura |
 | Bloqueio local | Biometria ou senha do aparelho ao abrir com sessão restaurada e ao voltar de mais de 30 s em segundo plano. No Expo Go do iPhone o Face ID não está disponível, então vale a senha do aparelho; em um build próprio ele funciona |
 | Capa de privacidade | Esconde o saldo no alternador de apps enquanto o app está fora de foco |
-| Dados ao sair | Encerrar a sessão apaga da memória as transações e o extrato |
+| Dados ao sair | Encerrar a sessão apaga da memória as transações e o extrato, e do aparelho o cache das transações |
 | Recibos | O documento guarda só o caminho do arquivo: a URL dá acesso sem passar pelas regras do Storage, então é obtida só para exibir. Excluir a transação apaga também os arquivos |
 | Regras do Firebase | Validam campos, tamanhos e o sinal do valor, travam agência, conta e `createdAt`, e limitam os tipos de arquivo |
 | Senha de conta nova | Ao menos 8 caracteres, com letras e números |
 
-As medições de performance e o passo a passo para repeti-las estão em
-[docs/performance.md](docs/performance.md).
+### Performance
+
+A tela aparece sem esperar o perfil, a lista abre a partir de um cache cifrado, o
+extrato é pré-carregado e os gráficos são carregados sob demanda. No iPhone, a tela
+passou de cerca de 1,1 s para 0,5 s e uma foto de recibo de 4,6 MB para 311 KB. O que
+foi feito, como medir e os números estão em [docs/performance.md](docs/performance.md).
